@@ -25,7 +25,9 @@ import "react-toastify/dist/ReactToastify.css";
 import AdminDashboard from "./Pages/AdminDashboard";
 import ProductsPage from "./Pages/ProductsPage";
 import ProductPage from "./Pages/ProductPage";
+import HomePage from "./Pages/HomePages";
 import CategoryPage from "./Pages/CategoryPage";
+import WomenCollectionPage from "./Pages/WomenCollectionPage";
 import CartPage from "./Pages/CartPage";
 import CheckoutPage from "./Pages/CheckoutPage";
 import NotFound from "./Pages/NotFound";
@@ -83,18 +85,16 @@ const App = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* OPEN THE APP AT category */}
-            <Route path="/" element={<Navigate to="/category/men" replace />} />
-            <Route
-              path="/home"
-              element={<Navigate to="/category/men" replace />}
-            />
+            {/* /home is kept as an alias of the main Home page */}
+            <Route path="/home" element={<Navigate to="/" replace />} />
             <Route
               path="/category"
               element={<Navigate to="/category/men" replace />}
             />
 
             <Route element={<Layout />}>
+              {/* MAIN HOME PAGE */}
+              <Route path="/" element={<HomePage isLoaded={isLoaded} />} />
               <Route path="/best-sellers" element={<BestSellers />} />
               <Route path="/shipping-returns" element={<ShippingReturns />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
@@ -105,6 +105,7 @@ const App = () => {
               <Route path="/press" element={<Press />} />
               <Route path="/store-locator" element={<StoreLocator />} />
               <Route path="/products" element={<ProductsPage />} />
+              <Route path="/category/women" element={<WomenCollectionPage />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/product/:id" element={<ProductPage />} />
             </Route>

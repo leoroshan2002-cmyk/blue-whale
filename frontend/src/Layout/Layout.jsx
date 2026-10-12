@@ -4,12 +4,13 @@ import Navbar from "../Components/Navbar";
 export default function Layout() {
   const location = useLocation();
   const isHomePage = ["/", "/home"].includes(location.pathname);
+  const isWomenPage = location.pathname === "/category/women";
 
   return (
     <>
       <Navbar />
 
-      <main className={`${isHomePage ? "" : "pt-16 sm:pt-20"} overflow-x-hidden`}>
+      <main className={`${isHomePage || isWomenPage ? "" : "pt-16 sm:pt-20"} overflow-x-hidden`}>
         <Outlet />
       </main>
     </>

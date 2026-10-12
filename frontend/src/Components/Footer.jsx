@@ -1,6 +1,6 @@
 import { ArrowRight, AtSign, Camera, FactoryIcon, X } from "lucide-react";
 import { Link } from "react-router-dom";
-import logotransparent from "../assets/HaierahLogoTransparent.png";
+import logotransparent from "../assets/BlueWhaleLogoTransparent.png";
 
 export default function Footer() {
   return (
@@ -11,13 +11,13 @@ export default function Footer() {
             <Link to="/home">
               <img
                 src={logotransparent}
-                alt="HAIERAH Logo"
+                alt="Blue Whale Collection Logo"
                 className="h-10 w-auto object-contain transition-all duration-300 sm:h-14"
               />
             </Link>
             <p className="mt-5 max-w-[510px] text-sm leading-6 text-[#344054] sm:mt-7 sm:text-[17px] sm:leading-7">
-              Premium menswear for the modern gentleman. Elevate<br className="hidden sm:block" />
-              your wardrobe with timeless pieces crafted for distinction.
+              Bringing timeless Indian weaves to your wardrobe. Rooted in tradition,<br className="hidden sm:block" />
+              crafted for today.
             </p>
             <div className="mt-6 flex flex-wrap items-center gap-2.5 sm:mt-10">
               <span className="mr-1 text-sm sm:mr-3 sm:text-[17px]">Follow us on</span>
@@ -75,7 +75,7 @@ export default function Footer() {
             <address className="mt-5 space-y-3 text-[15px] not-italic leading-6 text-[#526071] sm:mt-7 sm:text-[16px]">
               <a href="mailto:contact@yourdomain.com" className="block hover:text-[#071329]">contact@yourdomain.com</a>
               <a href="tel:+15550000000" className="block hover:text-[#071329]">+1 (555) 000-0000</a>
-              <p>123 Business Street, City, Country</p>
+              <p>Tiruppur, Palladam, Mangalam Road,<br />Sriram Opposite, Bhavendhar Street,<br />Palladam - 641664</p>
               <p>Mon–Fri, 9am–6pm</p>
             </address>
           </div>

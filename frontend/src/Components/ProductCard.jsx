@@ -75,7 +75,8 @@ const ProductCard = ({
 
             <div className="absolute inset-x-3 bottom-3 flex items-end justify-between gap-2 sm:inset-x-5 sm:bottom-5 sm:gap-3">
                 <div className="min-w-0">
-                    <h3 className="truncate text-[13px] font-medium text-[#3e4246] sm:text-[15px]">{product.name}</h3>
+                    <Link to={`/product/${product.id || product._id}`} className="block truncate text-[13px] font-medium text-[#3e4246] hover:text-[#946b4c] sm:text-[15px]">{product.name}</Link>
+                    <Link to={`/product/${product.id || product._id}`} className="mt-1 inline-block text-[10px] font-semibold tracking-[.13em] text-[#7d624b] underline underline-offset-4 sm:text-xs">VIEW PRODUCT DETAILS ↗</Link>
                     <div className="mt-1 flex items-baseline gap-2">
                         <span className="text-[16px] font-semibold text-[#e64f00] sm:text-[21px]">₹{product.discountPrice || product.price}</span>
                         {product.discountPrice && (

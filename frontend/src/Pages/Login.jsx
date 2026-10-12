@@ -23,7 +23,8 @@ export default function Login() {
   useEffect(() => {
     if (!isAuthReady || !user) return;
 
-    const fallbackDestination = location.state?.from?.pathname || "/";
+    const fromLocation = location.state?.from;
+    const fallbackDestination = fromLocation?.pathname ? `${fromLocation.pathname}${fromLocation.search || ""}` : "/";
     const destination = fallbackDestination === "/login" || fallbackDestination === "/register" ? "/" : fallbackDestination;
     if (user.role === "admin") {
       navigate("/admin", { replace: true });

@@ -1,16 +1,17 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Heart, LayoutGrid, Menu, Search, ShoppingBag, User, X } from "lucide-react";
+import { Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
 import { useWishlist } from "../Context/WhislistContext";
 import { useCart } from "../Context/CartContext";
-import logotransparent from "../assets/HaierahLogoTransparent.png";
-import CategoriesSidebar from "./CategoriesSidebar";
+import logotransparent from "../assets/BlueWhaleLogoTransparent.png";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import SearchBar from "./SearchBar";
-import { fetchCategories } from "../services/api";
 
-const staticNavItems = [
-  // { name: "ALL CATEGORIES", path: "/products", type: "page" },
+const navItems = [
+  { name: "Home", path: "/", end: true },
+  { name: "Men", path: "/category/men" },
+  { name: "Women", path: "/category/women" },
+  { name: "Combo", path: "/products" },
 ];
 
 export default function Navbar() {
@@ -20,33 +21,11 @@ export default function Navbar() {
 
   const location = useLocation();
   const isHomePage = ["/", "/home"].includes(location.pathname);
+  const isWomenPage = location.pathname === "/category/women";
 
-  const [open, setOpen] = useState(false);
-  const [activeMenu, setActiveMenu] = useState("MEN");
   const [search, setSearch] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [categories, setCategories] = useState([]);
-
-  const categoryNavItems = categories
-    .filter(
-      (cat) =>
-        !staticNavItems.some((item) => item.name === cat.name?.toUpperCase()) &&
-        cat.slug,
-    )
-    .map((cat) => ({
-      name: cat.name?.toUpperCase(),
-      path: `/category/${cat.slug}`,
-      type: "category-page",
-    }));
-
-  const navItems = [...staticNavItems, ...categoryNavItems].filter(
-    (item, index, array) =>
-      index ===
-      array.findIndex(
-        (other) => other.name === item.name && other.path === item.path,
-      ),
-  );
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,36 +39,28 @@ export default function Navbar() {
     };
   }, []);
 
-  useEffect(() => {
-    const loadCategories = async () => {
-      const response = await fetchCategories();
-      setCategories(response);
-    };
-
-    loadCategories();
-  }, []);
+  // Transparent over the hero until the page is scrolled
+  const overHero = (isHomePage || isWomenPage) && !isScrolled;
 
   return (
     <header
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-        isHomePage
-          ? isScrolled
-            ? "bg-white/95 shadow-md backdrop-blur-md"
-            : "bg-black/25 shadow-sm backdrop-blur-md"
+        overHero
+          ? "bg-gradient-to-b from-black/60 via-black/20 to-transparent"
           : "bg-white/95 shadow-md backdrop-blur-md"
       }`}
     >
       <div className="relative mx-auto flex h-16 max-w-7xl items-center justify-between px-3 sm:h-20 sm:px-6">
         {/* LOGO */}
-        <NavLink to="/home" className="shrink-0">
+        <NavLink to="/" className="shrink-0">
           <img
             src={logotransparent}
-            alt="HAIERAH Logo"
-            className="h-9 w-auto object-contain transition-all duration-300 sm:h-14"
+            alt="Blue Whale Collection Logo"
+            className={`h-9 w-auto object-contain transition-all duration-300 sm:h-14 ${overHero ? "brightness-0 invert" : ""}`}
           />
         </NavLink>
         {/* NAVIGATION */}
-        <nav className="hidden md:flex gap-6 lg:gap-10 text-sm font-medium">
+        <nav className={`hidden md:flex gap-4 lg:gap-10 font-medium ${overHero ? "text-[10px] lg:text-[11px] uppercase tracking-[0.16em] lg:tracking-[0.24em]" : "text-sm"}`}>
           {navItems.map((item) => (
             <motion.div
               key={item.path}
@@ -98,16 +69,13 @@ export default function Navbar() {
             >
               <NavLink
                 to={item.path}
+                end={item.end}
                 className={({ isActive }) =>
                   `relative py-1 transition-all duration-300 ${
-                    isHomePage
-                      ? isScrolled
-                        ? isActive
-                          ? "text-amber-700"
-                          : "text-gray-900 hover:text-amber-700"
-                        : isActive
-                          ? "text-white"
-                          : "text-white hover:text-gray-300"
+                    overHero
+                      ? isActive
+                        ? "text-white"
+                        : "text-white/85 hover:text-white"
                       : isActive
                         ? "text-amber-700"
                         : "text-gray-900 hover:text-amber-700"
@@ -118,7 +86,7 @@ export default function Navbar() {
                   <>
                     {item.name}
                     <span
-                      className={`absolute left-0 -bottom-1 h-[2px] bg-amber-700 transition-all duration-300 ${
+                      className={`absolute left-0 -bottom-1 h-[1px] ${overHero ? "bg-[#c9a46a]" : "bg-amber-700"} transition-all duration-300 ${
                         isActive ? "w-full" : "w-0"
                       }`}
                     />
@@ -132,25 +100,9 @@ export default function Navbar() {
         {/* ICONS */}
         <div
           className={`flex items-center gap-2 sm:gap-4 transition-colors duration-300 ${
-            isHomePage
-              ? isScrolled
-                ? "text-gray-800"
-                : "text-white"
-              : "text-gray-800"
+            overHero ? "text-white" : "text-gray-800"
           }`}
         >
-          <button
-            onClick={() => {
-              setActiveMenu("MEN");
-              setOpen(true);
-            }}
-            className="hidden cursor-pointer hover:text-amber-700 transition md:block"
-            aria-label="Open categories"
-            type="button"
-          >
-            <LayoutGrid className="h-5 w-5 sm:h-6 sm:w-6" />
-          </button>
-
           <button
             onClick={() => setSearch(true)}
             className="cursor-pointer rounded-full p-1.5 hover:text-amber-700 transition"
@@ -186,10 +138,6 @@ export default function Navbar() {
             )}
           </NavLink>
 
-          <NavLink to="/account" className="rounded-full p-1.5 hover:text-amber-700 transition">
-            <User className="h-5 w-5 sm:h-6 sm:w-6" />
-          </NavLink>
-
           <button
             type="button"
             onClick={() => setMobileMenuOpen((previous) => !previous)}
@@ -209,6 +157,8 @@ export default function Navbar() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                end={item.end}
+                onClick={() => setMobileMenuOpen(false)}
                 className={({ isActive }) =>
                   `border-b border-gray-100 px-1 py-3 text-sm font-medium ${
                     isActive ? "text-amber-700" : "text-gray-800"
@@ -218,27 +168,9 @@ export default function Navbar() {
                 {item.name}
               </NavLink>
             ))}
-            <button
-              type="button"
-              onClick={() => {
-                setActiveMenu("MEN");
-                setOpen(true);
-                setMobileMenuOpen(false);
-              }}
-              className="border-b border-gray-100 px-1 py-3 text-left text-sm font-medium text-gray-800"
-            >
-              ALL CATEGORIES
-            </button>
           </div>
         </nav>
       )}
-
-      {/* CATEGORY SIDEBAR */}
-      <CategoriesSidebar
-        open={open}
-        setOpen={setOpen}
-        activeMenu={activeMenu}
-      />
 
       {/* SEARCH */}
       {search && <SearchBar open={search} setOpen={setSearch} />}

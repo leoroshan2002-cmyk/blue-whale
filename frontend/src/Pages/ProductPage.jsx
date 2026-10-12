@@ -1,520 +1,93 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { Star } from "lucide-react";
-
+import React, { useEffect, useMemo, useState } from "react";
+import { Link, useParams } from "react-router-dom";
+import { ArrowLeft, Check, Heart, Minus, Plus, ShieldCheck, ShoppingBag, Star, Truck } from "lucide-react";
+import { motion } from "framer-motion";
 import { useCart } from "../Context/CartContext";
 import { useWishlist } from "../Context/WhislistContext";
 import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
-import { fetchProductById } from "../services/api";
+import { fetchProductById, fetchProducts } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
+import { getRelatedSarees } from "../utils/sareeFilters";
+import { DEFAULT_IMAGE_FALLBACK, getSafeImageUrl, normalizeImageList } from "../utils/productImages";
+import ProductCard from "../Components/ProductCard";
+import "./saree-shop.css";
+
+const colorName = (color) => typeof color === "string" ? color : color?.name || color?.value || color?.hex || "Colour";
+const colorHex = (color) => typeof color === "string" ? (color.startsWith("#") ? color : "#bda18a") : color?.hex || color?.value || "#bda18a";
 
 export default function ProductPage() {
-  const navigate = useNavigate();
   const { id } = useParams();
-
   const [product, setProduct] = useState(null);
+  const [catalog, setCatalog] = useState([]);
   const [selectedImage, setSelectedImage] = useState(0);
-  const [selectedSize, setSelectedSize] = useState("");
-  const [selectedColor, setSelectedColor] = useState("");
-  const [selectedColorIndex, setSelectedColorIndex] = useState(0);
-
-  const getColorLabel = (color) => {
-    if (!color) return "";
-    if (typeof color === "string") return color;
-    return color.name || color.value || color.hex || String(color);
-  };
-
-  const getColorValue = (color) => {
-    if (!color) return "";
-    if (typeof color === "string") return color;
-    return color.hex || color.value || color.name || String(color);
-  };
-
-  const handleColorSelect = (color, index) => {
-    const label = getColorLabel(color);
-    setSelectedColor(label);
-    setSelectedColorIndex(index);
-
-    if (Array.isArray(product?.images) && product.images[index]) {
-      setSelectedImage(index);
-    } else if (Array.isArray(product?.images) && product.images.length > 0) {
-      setSelectedImage(0);
-    }
-  };
-
-  const [reviews, setReviews] = useState([
-    {
-      name: "John Doe",
-      rating: 5,
-      comment: "Excellent quality. Fits perfectly.",
-    },
-    {
-      name: "Sarah",
-      rating: 4,
-      comment: "Very comfortable and stylish.",
-    },
-  ]);
-
-  const [reviewForm, setReviewForm] = useState({
-    name: "",
-    rating: 5,
-    comment: "",
-  });
+  const [selectedColor, setSelectedColor] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const { addToCart } = useCart();
+  const { toggleWishlist, isWishlisted } = useWishlist();
+  const { requireAuthAction } = useRequireAuthAction();
 
   useEffect(() => {
-    const loadProduct = async () => {
-      const response = await fetchProductById(id);
-      setProduct(response);
-      if (response?.sizes?.length) {
-        setSelectedSize(response.sizes[0]);
-      }
-      if (response?.colors?.length) {
-        const firstColor = response.colors[0];
-        setSelectedColor(getColorLabel(firstColor));
-        setSelectedColorIndex(0);
-        setSelectedImage(0);
-      }
+    let cancelled = false;
+    setSelectedImage(0);
+    setSelectedColor(0);
+    setQuantity(1);
+    const load = async () => {
+      const [detail, all] = await Promise.all([fetchProductById(id), fetchProducts()]);
+      if (!cancelled) { setProduct(detail || (all || []).find((p) => String(p.id || p._id) === String(id)) || null); setCatalog(Array.isArray(all) ? all : []); }
     };
-
-    loadProduct();
-
-    const handleInventoryChange = () => {
-      loadProduct();
-    };
-
-    if (typeof window !== 'undefined') {
-      window.addEventListener('haierah-products-updated', handleInventoryChange);
-      window.addEventListener('haierah-order-created', handleInventoryChange);
-    }
-
-    const unsubscribeCatalog = subscribeToCatalogChanges(handleInventoryChange);
-
-    return () => {
-      unsubscribeCatalog();
-      if (typeof window !== 'undefined') {
-        window.removeEventListener('haierah-products-updated', handleInventoryChange);
-        window.removeEventListener('haierah-order-created', handleInventoryChange);
-      }
-    };
+    load();
+    const refresh = () => load();
+    window.addEventListener("haierah-products-updated", refresh);
+    const unsubscribe = subscribeToCatalogChanges(refresh);
+    return () => { cancelled = true; unsubscribe(); window.removeEventListener("haierah-products-updated", refresh); };
   }, [id]);
 
-  const { addToCart } = useCart();
-  const { requireAuthAction } = useRequireAuthAction();
-  const {
-    toggleWishlist,
-    isWishlisted,
-  } = useWishlist();
-
-  // useEffect(() => {
-  //   if (!product) return;
-
-  //   gsap.from(".product-image", {
-  //     opacity: 0,
-  //     x: -80,
-  //     duration: 0.8,
-  //   });
-
-  //   gsap.from(".product-info > *", {
-  //     opacity: 0,
-  //     y: 30,
-  //     stagger: 0.12,
-  //     duration: 0.7,
-  //   });
-  // }, [product]);
-
-  if (!product) {
-    return (
-      <div className="max-w-6xl mx-auto py-32 text-center">
-        <h2 className="text-3xl font-semibold">
-          Product Not Found
-        </h2>
-
-        <p
-
-          className="inline-block mt-8 px-6 py-3 bg-black text-white rounded-full"
-          onClick={() => navigate(-1)}
-        >
-          Back to Shop
-        </p>
-      </div>
-    );
-  }
-
- const handleWishlist = () => {
-  if (!requireAuthAction("toggleWishlist", product)) return;
-  toggleWishlist(product);
-};
-
-  return (
-    <section className="max-w-7xl mx-auto px-6 py-16">
-
-      <div className="grid lg:grid-cols-2 gap-16">
-
-        {/* Image */}
-
-        <div className="product-image">
-
-          <div className="rounded-3xl overflow-hidden bg-gray-100">
-            <img
-              src={product.images?.[selectedImage] || product.image || product.images?.[0]}
-              alt={product.name}
-              className="w-full h-[700px] object-cover"
-            />
-          </div>
-
-          {/* Thumbnails */}
-
-          <div className="flex gap-3 mt-4 overflow-x-auto">
-            {(product.images || []).map((img, index) => (
-              <button
-                key={index}
-                onClick={() => setSelectedImage(index)}
-                className={`overflow-hidden rounded-xl border-2 ${selectedImage === index
-                  ? "border-black"
-                  : "border-gray-200"
-                  }`}
-              >
-                <img
-                  src={img}
-                  alt=""
-                  className="w-24 h-24 object-cover"
-                />
-              </button>
-            ))}
-          </div>
-
-        </div>
-
-        {/* Details */}
-
-        <div className="product-info">
-
-          <p className="uppercase tracking-widest text-gray-500">
-            {product.brand}
-          </p>
-
-          <h1 className="text-5xl font-serif mt-3">
-            {product.name}
-          </h1>
-
-          <div className="flex items-center gap-2 mt-5">
-
-            <Star
-              className="fill-yellow-400 text-yellow-400"
-              size={18}
-            />
-
-            <span className="font-medium">
-              {product.rating}
-            </span>
-
-            <span className="text-gray-500">
-              ({product.reviews} Reviews)
-            </span>
-
-          </div>
-
-          <h2 className="text-4xl font-bold mt-6">
-            ₹{product.price}
-          </h2>
-
-          <p className="mt-6 text-gray-600 leading-8">
-            {product.description}
-          </p>
-
-          {/* Category */}
-
-          <div className="mt-8">
-            <span className="font-semibold">
-              Category :
-            </span>
-
-            <span className="ml-3 text-gray-600">
-              {product.category}
-            </span>
-          </div>
-
-          {/* Material */}
-
-          <div className="mt-5">
-            <span className="font-semibold">
-              Material :
-            </span>
-
-            <span className="ml-3 text-gray-600">
-              {product.material}
-            </span>
-          </div>
-
-          {/* Sizes */}
-
-          <div className="mt-8">
-
-            <h3 className="font-semibold mb-3">
-              Select Size
-            </h3>
-
-            <div className="flex gap-3">
-
-              {(product.sizes || []).map((size) => (
-
-                <button
-                  key={size}
-                  onClick={() => setSelectedSize(size)}
-                  className={`w-12 h-12 rounded-xl border transition
-        ${selectedSize === size
-                      ? "bg-black text-white border-black"
-                      : "hover:bg-black hover:text-white"
-                    }`}
-                >
-                  {size}
-                </button>
-
-              ))}
-
-            </div>
-
-          </div>
-
-          {/* Colors */}
-
-          <div className="mt-8">
-
-            <h3 className="font-semibold mb-3">
-              Select Color
-            </h3>
-
-            <div className="flex gap-3">
-
-              {(product.colors || []).map((color, index) => {
-                const colorValue = color?.hex || color?.value || color?.name || String(color);
-                const colorLabel = color?.name || color?.value || String(color);
-                const colorKey = color?.id || `${colorLabel}-${index}` || `${colorValue}-${index}`;
-
-                return (
-                  <button
-                    key={colorKey}
-                    onClick={() => handleColorSelect(color, index)}
-                    className={`w-12 h-12 rounded-full border-4 transition ${
-                      selectedColor === colorLabel
-                        ? "border-black scale-110"
-                        : "border-gray-300"
-                    }`}
-                    style={{
-                      backgroundColor: colorValue,
-                    }}
-                  />
-                );
-              })}
-
-            </div>
-
-            {selectedColor && (
-              <p className="mt-3 text-gray-600">
-                Selected: {selectedColor}
-              </p>
-            )}
-
-          </div>
-
-          {/* Stock */}
-
-          <div className="mt-8">
-
-            {product.stock > 0 ? (
-
-              <span className="text-green-600 font-semibold">
-                ✔ In Stock ({product.stock} left)
-              </span>
-
-            ) : (
-
-              <span className="text-red-500">
-                Out of Stock
-              </span>
-
-            )}
-
-          </div>
-
-          {/* Buttons */}
-
-          <div className="flex gap-4 mt-10">
-
-            <button
-              onClick={() => {
-                if ((product.stock ?? 0) <= 0) {
-                  alert("This item is out of stock.");
-                  return;
-                }
-
-                if (!selectedSize) {
-                  return alert("Select a size");
-                }
-
-                if (!selectedColor) {
-                  return alert("Select a color");
-                }
-
-                const cartProduct = {
-                  ...product,
-                  selectedSize,
-                  selectedColor,
-                  selectedColorIndex,
-                  color: selectedColor,
-                  image: product.images?.[selectedColorIndex] || product.image || product.images?.[0],
-                };
-
-                if (!requireAuthAction("addToCart", cartProduct)) return;
-
-                addToCart(cartProduct);
-              }}
-              disabled={(product.stock ?? 0) <= 0}
-              className={`flex-1 rounded-full py-4 ${ (product.stock ?? 0) <= 0 ? "bg-gray-300 text-gray-600 cursor-not-allowed" : "bg-[#0d2746] text-white" }`}
-            >
-              {(product.stock ?? 0) <= 0 ? "Out of Stock" : "Add To Cart"}
-            </button>
-
-            <button
-              onClick={handleWishlist}
-              className="flex-1 border rounded-full py-4 hover:bg-black hover:text-white duration-300"
-            >
-              {isWishlisted(product.id)
-                ? "Remove Wishlist"
-                : "Add Wishlist"}
-            </button>
-
-          </div>
-
-          {/* Features */}
-
-
-          <div className=" col-span-2 mt-20 border-t pt-10">
-
-            <h2 className="text-3xl font-bold mb-8">
-              Customer Reviews
-            </h2>
-
-            <div className="space-y-6">
-
-              {reviews.map((review, index) => (
-
-                <div
-                  key={`${review.name}-${index}`}
-                  className="border rounded-2xl p-5"
-                >
-                  <div className="flex items-center gap-2 mb-2">
-
-                    {[...Array(review.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        size={16}
-                        className="fill-yellow-400 text-yellow-400"
-                      />
-                    ))}
-
-                  </div>
-
-                  <h4 className="font-semibold">
-                    {review.name}
-                  </h4>
-
-                  <p className="text-gray-600 mt-2">
-                    {review.comment}
-                  </p>
-
-                </div>
-
-              ))}
-
-            </div>
-
-          </div>
-          <div className="mt-12">
-
-            <h3 className="text-2xl font-semibold mb-6">
-              Write a Review
-            </h3>
-
-            <div className="space-y-4">
-
-              <input
-                type="text"
-                placeholder="Your Name"
-                value={reviewForm.name}
-                onChange={(e) =>
-                  setReviewForm({
-                    ...reviewForm,
-                    name: e.target.value,
-                  })
-                }
-                className="w-full border rounded-xl p-4"
-              />
-
-              <select
-                value={reviewForm.rating}
-                onChange={(e) =>
-                  setReviewForm({
-                    ...reviewForm,
-                    rating: Number(e.target.value),
-                  })
-                }
-                className="w-full border rounded-xl p-4"
-              >
-                <option value="5">★★★★★</option>
-                <option value="4">★★★★</option>
-                <option value="3">★★★</option>
-                <option value="2">★★</option>
-                <option value="1">★</option>
-              </select>
-
-              <textarea
-                rows={5}
-                placeholder="Write your review..."
-                value={reviewForm.comment}
-                onChange={(e) =>
-                  setReviewForm({
-                    ...reviewForm,
-                    comment: e.target.value,
-                  })
-                }
-                className="w-full border rounded-xl p-4"
-              />
-
-              <button
-                onClick={() => {
-
-                  if (
-                    !reviewForm.name ||
-                    !reviewForm.comment
-                  ) {
-                    return;
-                  }
-
-                  setReviews([
-                    ...reviews,
-                    reviewForm,
-                  ]);
-
-                  setReviewForm({
-                    name: "",
-                    rating: 5,
-                    comment: "",
-                  });
-                }}
-                className="bg-black text-white px-8 py-3 rounded-full"
-              >
-                Submit Review
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-
-      </div>
-
+  const images = useMemo(() => normalizeImageList(product?.images?.length ? product.images : [product?.image]), [product]);
+  const colors = Array.isArray(product?.colors) ? product.colors : [];
+  const price = Number(product?.discountPrice ?? product?.salePrice ?? product?.price ?? 0);
+  const originalPrice = Number(product?.originalPrice ?? product?.compareAtPrice ?? product?.price ?? 0);
+  const discount = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
+  const related = useMemo(() => getRelatedSarees(product, catalog, 4), [catalog, product]);
+
+  if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>Finding your piece…</h2><p>If the product does not appear, it may no longer be available.</p><Link to="/products?category=women">Back to collection</Link></div></main>;
+
+  const selectedColorValue = colors[selectedColor];
+  const stock = Number(product.stock ?? 0);
+  const handleAdd = () => {
+    if (stock <= 0) return;
+    const cartItem = { ...product, price, image: images[selectedImage] || product.image, images, selectedColor: colors.length ? colorName(selectedColorValue) : "", color: colors.length ? colorName(selectedColorValue) : "", selectedColorIndex: selectedColor, qty: quantity };
+    if (!requireAuthAction("addToCart", cartItem)) return;
+    addToCart(cartItem);
+  };
+  const handleWishlist = () => { if (requireAuthAction("toggleWishlist", product)) toggleWishlist(product); };
+  const categoryPath = `/products?category=${encodeURIComponent(String(product.category || "women").toLowerCase())}${product.subCategory || product.subcategory ? `&subcategory=${encodeURIComponent(product.subCategory || product.subcategory)}` : ""}`;
+
+  return <main className="bw-product-page">
+    <div className="bw-product-breadcrumb"><Link to={categoryPath}><ArrowLeft size={15}/> Back to collection</Link><span>BLUE WHALE / THE SAREE EDIT / {product.name}</span></div>
+    <section className="bw-product-detail">
+      <motion.div className="bw-product-gallery" initial={{opacity:0,x:-28}} animate={{opacity:1,x:0}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
+        <div className="bw-product-main-image"><img key={images[selectedImage] || product.image} src={getSafeImageUrl(images[selectedImage] || product.image, DEFAULT_IMAGE_FALLBACK)} alt={product.name} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/><span className="bw-image-caption">CRAFTED WITH CARE · BLUE WHALE</span>{discount > 0 && <span className="bw-discount-tag">-{discount}%</span>}</div>
+        <div className="bw-product-thumbs">{(images.length ? images : [product.image]).filter(Boolean).map((image,index)=><button type="button" key={`${image}-${index}`} onClick={()=>setSelectedImage(index)} className={selectedImage===index?"active":""} aria-label={`View product image ${index+1}`}><img src={getSafeImageUrl(image,DEFAULT_IMAGE_FALLBACK)} alt={`${product.name} view ${index+1}`} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/></button>)}</div>
+        <div className="bw-image-note"><span>✳</span><p>Every weave holds a story. Make this one yours.</p></div>
+      </motion.div>
+      <motion.div className="bw-product-info" initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.8,delay:.12,ease:[.22,1,.36,1]}}>
+        <p className="bw-eyebrow bw-eyebrow-dark">{product.brand || "BLUE WHALE COLLECTION"}</p>
+        <h1>{product.name}</h1>
+        <div className="bw-product-rating"><span className="bw-stars"><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/></span><span>{product.rating || "4.8"}</span><span className="bw-muted">({product.reviews || product.reviewCount || "Customer"} reviews)</span></div>
+        <div className="bw-product-price"><strong>₹{price.toLocaleString("en-IN")}</strong>{discount>0&&<><del>₹{originalPrice.toLocaleString("en-IN")}</del><span>{discount}% off</span></>}</div>
+        <p className="bw-product-tax">Inclusive of all taxes · Shipping calculated at checkout</p>
+        <div className="bw-product-divider"/>
+        <p className="bw-product-description">{product.description || `A beautiful ${product.material || "crafted"} piece from Blue Whale, selected for its timeless colour, graceful drape and thoughtful detailing.`}</p>
+        <div className="bw-product-specs">{(product.material || product.fabric) && <div><span>FABRIC</span><strong>{product.material || product.fabric}</strong></div>}{(product.category || product.subCategory || product.subcategory) && <div><span>COLLECTION</span><strong>{product.subCategory || product.subcategory || product.category}</strong></div>}{product.sku && <div><span>PRODUCT CODE</span><strong>{product.sku}</strong></div>}</div>
+        {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>{setSelectedColor(index);if(images[index])setSelectedImage(index);}}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
+        {Array.isArray(product.sizes)&&product.sizes.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>SIZE</span><button type="button" className="bw-size-help" onClick={()=>window.alert("Sarees are generally one-size drapes. Please check the product details for blouse-piece information.")}>Size guide</button></div><div className="bw-size-options">{product.sizes.map((size)=><span key={size}>{size}</span>)}</div></div>}
+        <div className="bw-buy-row"><div className="bw-quantity"><button type="button" onClick={()=>setQuantity((q)=>Math.max(1,q-1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{quantity}</span><button type="button" onClick={()=>setQuantity((q)=>Math.min(Math.max(stock,1),q+1))} aria-label="Increase quantity"><Plus size={14}/></button></div><button type="button" className="bw-add-cart" disabled={stock<=0} onClick={handleAdd}><ShoppingBag size={17}/>{stock<=0?"Currently unavailable":"Add to bag"}</button><button type="button" className={`bw-wishlist ${isWishlisted(product.id || product._id)?"saved":""}`} onClick={handleWishlist} aria-label="Add to wishlist"><Heart size={19} fill={isWishlisted(product.id || product._id)?"currentColor":"none"}/></button></div>
+        <p className={`bw-stock ${stock>0?"in-stock":"out-stock"}`}><span/> {stock>0?"Ready to ship · In stock":"Currently out of stock"}</p>
+        <div className="bw-promises"><div><Truck size={18}/><span><strong>Thoughtful delivery</strong><small>Carefully packed for you</small></span></div><div><ShieldCheck size={18}/><span><strong>Made to be treasured</strong><small>Quality you can feel</small></span></div></div>
+        <details className="bw-detail-accordion"><summary>Product details <span>+</span></summary><p>{product.description || "A carefully selected piece from our collection."}</p>{product.care && <p>Care: {Array.isArray(product.care)?product.care.join(" · "):product.care}</p>}</details>
+        <details className="bw-detail-accordion"><summary>Shipping & returns <span>+</span></summary><p>Your piece is prepared with care. Delivery estimates and return eligibility are confirmed during checkout.</p></details>
+      </motion.div>
     </section>
-  );
+    {related.length>0&&<section className="bw-related"><div className="bw-related-heading"><div><p className="bw-eyebrow bw-eyebrow-dark">THE ART OF THE DRAPE</p><h2>You may also love</h2></div><Link to={categoryPath}>View collection ↗</Link></div><div className="bw-related-grid">{related.map((item)=><ProductCard key={item.id||item._id} product={item} showButtons={false}/>)}</div></section>}
+  </main>;
 }

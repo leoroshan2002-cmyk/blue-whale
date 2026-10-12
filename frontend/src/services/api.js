@@ -1,7 +1,7 @@
 import axios from 'axios';
 import campaignData from '../Components/Data/campaignData';
 import { sanitizeProductForClient } from '../utils/productImages';
-
+import.meta.env.VITE_API_URL
 const rawBaseApiUrl = (import.meta.env.VITE_API_URL || '').trim();
 const normalizedBaseApiUrl = rawBaseApiUrl.replace(/\/$/, '');
 
@@ -50,6 +50,17 @@ export const resolveBackendImageUrl = (image) => {
 
   const normalizedImage = trimmedImage.startsWith('/') ? trimmedImage : `/${trimmedImage}`;
   return apiBaseUrl ? `${apiBaseUrl}${normalizedImage}` : normalizedImage;
+};
+
+// Product images saved by the backend as /uploads/... must point at the API origin, not the Vite dev server.
+const withResolvedImages = (product) => {
+  if (!product || typeof product !== 'object') return product;
+  const resolve = (image) => (typeof image === 'string' && image.startsWith('/uploads') ? resolveBackendImageUrl(image) : image);
+  return {
+    ...product,
+    images: Array.isArray(product.images) ? product.images.map(resolve) : product.images,
+    image: resolve(product.image),
+  };
 };
 
 const categoriesUrl = buildApiUrl('/api/categories');
@@ -109,7 +120,7 @@ export const fetchProducts = async () => {
     return await productsCache.fetch(async () => {
       const { data } = await apiClient.get(productsUrl);
       const products = Array.isArray(data?.products) ? data.products : [];
-      return products.map((product) => sanitizeProductForClient(product));
+      return products.map((product) => sanitizeProductForClient(withResolvedImages(product)));
     });
   } catch (error) {
     console.error('Failed to fetch products:', error);
@@ -123,7 +134,7 @@ export const invalidateCategoryCache = () => categoriesCache.invalidate();
 export const fetchProductById = async (id) => {
   try {
     const { data } = await apiClient.get(buildApiUrl(`/api/products/${id}`));
-    return sanitizeProductForClient(data?.product || null);
+    return sanitizeProductForClient(withResolvedImages(data?.product || null));
   } catch (error) {
     console.error('Failed to fetch product:', error);
     return null;

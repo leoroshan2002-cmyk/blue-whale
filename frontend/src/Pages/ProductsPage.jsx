@@ -1,176 +1,105 @@
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Feature, motion } from "framer-motion";
-import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowDownWideNarrow, ArrowLeft, Search, SlidersHorizontal } from "lucide-react";
 import { useCart } from "../Context/CartContext";
-import ProductCard from "../Components/ProductCard";
 import { useWishlist } from "../Context/WhislistContext";
 import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
-import PageBack from "../Components/CommonDetails/PageBack";
+import ProductCard from "../Components/ProductCard";
 import { fetchProducts } from "../services/api";
-import { filterProductsBySearch } from "../utils/searchUtils";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
 import HaierahStandard from "../Components/HaierahStandard";
 import Footer from "../Components/Footer";
+import "./saree-shop.css";
+import heroImage from "../assets/home/reference/gallery-purple.png";
+import { filterByCollection, isSareeProduct, matchesCategory } from "../utils/sareeFilters";
 
+const searchableText = (p) => [p.name, p.category, p.subCategory, p.subcategory, p.collection, p.type, p.description, p.material, ...(Array.isArray(p.tags) ? p.tags : [])].filter(Boolean).join(" ").toLowerCase().replace(/&/g, "and");
 
 export default function ProductsPage() {
-    const location = useLocation();
-    const [search, setSearch] = useState("");
-    const [products, setProducts] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const queryParams = new URLSearchParams(location.search);
-    const categoryFilter = queryParams.get("category") || "";
-    const searchFilter = queryParams.get("search") || "";
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const categoryFilter = params.get("category") || "";
+  const subcategoryFilter = params.get("subcategory") || "";
+  const searchFilter = params.get("search") || "";
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState(searchFilter);
+  const [sort, setSort] = useState("featured");
+  const [maxPrice, setMaxPrice] = useState(null);
+  const { addToCart } = useCart();
+  const { toggleWishlist } = useWishlist();
+  const { requireAuthAction } = useRequireAuthAction();
 
-    useEffect(() => {
-        let cancelled = false;
-        setLoading(true);
-        const loadProducts = async () => {
-            const response = await fetchProducts();
-            if (cancelled) return;
-            setProducts(response);
-            setLoading(false);
-        };
-
-        loadProducts();
-
-        const handleInventoryChange = () => {
-            loadProducts();
-        };
-
-        if (typeof window !== 'undefined') {
-            window.addEventListener('haierah-products-updated', handleInventoryChange);
-            window.addEventListener('haierah-order-created', handleInventoryChange);
-        }
-
-        const unsubscribeCatalog = subscribeToCatalogChanges(handleInventoryChange);
-
-        return () => {
-            cancelled = true;
-            unsubscribeCatalog();
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('haierah-products-updated', handleInventoryChange);
-                window.removeEventListener('haierah-order-created', handleInventoryChange);
-            }
-        };
-    }, []);
-
-    const { addToCart } = useCart();
-    const { requireAuthAction } = useRequireAuthAction();
-
-    const activeSearch = search || searchFilter;
-    const filteredProducts = filterProductsBySearch(products, activeSearch).filter((product) => {
-        const matchesCategory =
-            !categoryFilter ||
-            product.category?.toLowerCase().includes(categoryFilter.toLowerCase());
-
-        return matchesCategory;
-    });
-
-    const handleCart = (product) => {
-        if (!requireAuthAction("addToCart", product)) return;
-        addToCart(product);
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      const items = await fetchProducts();
+      if (!cancelled) { setProducts(Array.isArray(items) ? items : []); setLoading(false); }
     };
-    const { toggleWishlist } = useWishlist();
+    load();
+    const refresh = () => load();
+    window.addEventListener("haierah-products-updated", refresh);
+    window.addEventListener("haierah-order-created", refresh);
+    const unsubscribe = subscribeToCatalogChanges(refresh);
+    return () => { cancelled = true; unsubscribe(); window.removeEventListener("haierah-products-updated", refresh); window.removeEventListener("haierah-order-created", refresh); };
+  }, []);
 
-    if (loading) {
-        return (
-            <div className="relative h-full max-w-7xl w-full mx-auto px-6 py-20 bg-[#f8f7f5]">
-                <div className="mb-6">
-                    <div className="h-8 w-24 bg-gray-200 rounded animate-pulse" />
-                </div>
-                <div className="flex items-center justify-between mb-8">
-                    <div className="h-8 w-32 bg-gray-200 rounded animate-pulse" />
-                </div>
-                <div className="grid md:grid-cols-4 gap-8">
-                    {Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="rounded-2xl overflow-hidden bg-white shadow-sm border border-gray-100">
-                            <div className="aspect-[3/4] bg-gray-200 animate-pulse" />
-                            <div className="p-4 space-y-3">
-                                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4" />
-                                <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
-                                <div className="h-5 bg-gray-200 rounded animate-pulse w-1/3" />
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-    }
+  const isSaree = /saree|silk|zari|traditional|printed|floral/i.test(`${categoryFilter} ${subcategoryFilter}`) || categoryFilter.toLowerCase() === "women";
 
-    return (
-        <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            whileInView={{ opacity: 1, scale: 1 }}
-            viewport={{ once: true, amount: 0.3 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="relative h-full max-w-7xl w-full mx-auto px-6 py-20 bg-[#f8f7f5]"
-        >
+  const sliderMax = useMemo(() => {
+    const highest = products.reduce((max, p) => Math.max(max, Number(p.discountPrice ?? p.salePrice ?? p.price ?? 0) || 0), 0);
+    return Math.max(50000, Math.ceil(highest / 1000) * 1000);
+  }, [products]);
+  const priceCap = maxPrice ?? sliderMax;
 
-            {/* TOP BANNER ADDED (ONLY NEW SECTION) */}
-            {/* <div className="relative mb-10 overflow-hidden  bg-white border-b border-black  shadow-xl">
-                <div className="grid md:grid-cols-2 min-h-[420px]">
+  const filteredProducts = useMemo(() => {
+    // Real products from the API only: narrow by category, then by the selected saree collection.
+    let result = products.filter((p) => matchesCategory(p, categoryFilter));
+    if (isSaree) result = result.filter(isSareeProduct);
+    result = filterByCollection(result, subcategoryFilter);
 
-                    {/* Left Content */}
-                    {/* <div className="absolute bottom-0 left-0 flex flex-col col-span-2 justify-center p-8 md:p-14">
-                        <h2 className="font-black uppercase leading-[0.9] tracking-[-0.05em] text-red-600">
-                            <span className="block text-5xl md:text-7xl">
-                                UP TO 50% OFF
-                            </span>
+    const term = search.trim().toLowerCase();
+    const filtered = result.filter((p) => {
+      const price = Number(p.discountPrice ?? p.salePrice ?? p.price ?? 0);
+      return (!term || searchableText(p).includes(term)) && price <= priceCap;
+    });
+    if (sort === "price-low") filtered.sort((a,b) => Number(a.discountPrice ?? a.price ?? 0) - Number(b.discountPrice ?? b.price ?? 0));
+    if (sort === "price-high") filtered.sort((a,b) => Number(b.discountPrice ?? b.price ?? 0) - Number(a.discountPrice ?? a.price ?? 0));
+    if (sort === "name") filtered.sort((a,b) => String(a.name).localeCompare(String(b.name)));
+    return filtered;
+  }, [products, isSaree, categoryFilter, subcategoryFilter, search, sort, priceCap]);
 
-                            <span className="block mt-4 text-5xl md:text-7xl">
-                                NEW STYLES ADDED
-                            </span>
-                        </h2>
+  const title = subcategoryFilter || (categoryFilter.toLowerCase() === "women" ? "Saree Collection" : categoryFilter ? `${categoryFilter} Collection` : "The Collection");
+  const handleCart = (product) => { if (requireAuthAction("addToCart", product)) addToCart(product); };
 
-                        
-                    </div> 
+  return <main className={`bw-shop ${isSaree ? "bw-shop-saree" : ""}`}>
+    <motion.section className="bw-shop-hero" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.8 }}>
+      <div className="bw-shop-hero-image" style={{ backgroundImage: `linear-gradient(90deg, rgba(19,13,15,.76), rgba(19,13,15,.16)), url(${heroImage})` }} />
+      <motion.div className="bw-shop-hero-copy" initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.9, delay: 0.15 }}>
+        <p className="bw-eyebrow">BLUE WHALE · THE SAREE EDIT</p>
+        <h1>{title}</h1>
+        <p className="bw-shop-lede">A celebration of craft, colour and the quiet luxury of a beautiful drape.</p>
+        <a href="#collection-grid" className="bw-outline-link">EXPLORE THE COLLECTION <span>↓</span></a>
+      </motion.div>
+      <span className="bw-hero-index">CURATED FOR YOU · 2026</span>
+    </motion.section>
 
-                   
-                </div>
-            </div> */}
-            {/* 🔥 END BANNER */}
-            
-            <div className="mb-6">
-                 <PageBack />
-            </div>
-            
-            <div className="flex items-center justify-between mb-8">
-                <h1 className="text-3xl font-bold">Shop All</h1>
-                {/* <input
-                    type="text"
-                    placeholder="Search products..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="border rounded-full px-4 py-2 w-72 outline-none focus:ring-2 focus:ring-[#0d2746]"
-                /> */}
-            </div>
-
-            <div className="grid md:grid-cols-4 gap-8">
-                {filteredProducts.length > 0 ? (
-
-                    filteredProducts.map((product) => (
-                        <ProductCard
-                            key={product.id}
-                            product={product}
-                            onAddToCart={handleCart}
-                            onWishlist={toggleWishlist}
-                        />
-                    ))
-                ) : (
-                    <div className="col-span-full text-center py-16">
-                        <h2 className="text-2xl font-semibold text-gray-600">
-                            No products found
-                        </h2>
-                        <p className="text-gray-500 mt-2">
-                            Try searching with a different keyword.
-                        </p>
-                    </div>
-                )}
-            </div>
-
-            <HaierahStandard />
-            <Footer />
-        </motion.div >
-    );
+    <section className="bw-shop-body" id="collection-grid">
+      <div className="bw-shop-heading"><div><p className="bw-eyebrow bw-eyebrow-dark">DISCOVER YOUR DRAPE</p><h2>{title}</h2><p className="bw-muted">{loading ? "Preparing the collection…" : `${filteredProducts.length} ${filteredProducts.length === 1 ? "piece" : "pieces"} to discover`}</p></div><Link className="bw-back-link" to={categoryFilter ? `/category/${categoryFilter.toLowerCase() === "women" ? "women" : categoryFilter.toLowerCase()}` : "/category/women"}><ArrowLeft size={15}/> Back to collections</Link></div>
+      <div className="bw-shop-layout">
+        <aside className="bw-filters"><div className="bw-filter-title"><SlidersHorizontal size={17}/><span>REFINE YOUR SEARCH</span></div>
+          <label className="bw-search"><Search size={16}/><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search styles, fabric…" /></label>
+          <div className="bw-filter-block"><h3>COLLECTIONS</h3>{["All sarees", "Traditional Sarees", "Traditional Silk Sarees", "Printed Sarees", "Woven & Zari Sarees", "Floral Printed Sarees"].map((item) => <Link key={item} className={(item === "All sarees" && !subcategoryFilter) || item.toLowerCase() === subcategoryFilter.toLowerCase() ? "active" : ""} to={item === "All sarees" ? `/products?category=women` : `/products?category=women&subcategory=${encodeURIComponent(item)}`}>{item}</Link>)}</div>
+          <div className="bw-filter-block"><h3>PRICE RANGE</h3><div className="bw-price-row"><span>₹0</span><strong>₹{priceCap.toLocaleString("en-IN")}</strong></div><input aria-label="Maximum price" type="range" min="1000" max={sliderMax} step="1000" value={priceCap} onChange={(e) => setMaxPrice(Number(e.target.value))}/></div>
+          <div className="bw-filter-note"><span>✳</span><p>Made to be treasured. Find a drape that feels like you.</p></div>
+        </aside>
+        <div className="bw-shop-results"><div className="bw-results-toolbar"><span>{loading ? "Loading pieces" : `Showing ${filteredProducts.length} pieces`}</span><label><ArrowDownWideNarrow size={15}/><select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort products"><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name</option></select></label></div>
+          {loading ? <div className="bw-product-grid">{Array.from({length:8},(_,i)=><div className="bw-skeleton" key={i}/>)}</div> : filteredProducts.length ? <motion.div className="bw-product-grid" initial="hidden" animate="visible" variants={{visible:{transition:{staggerChildren:.06}}}}>{filteredProducts.map((product) => <motion.div key={product.id || product._id} variants={{hidden:{opacity:0,y:22},visible:{opacity:1,y:0}}} transition={{duration:.55}}><ProductCard product={product} onAddToCart={handleCart} onWishlist={toggleWishlist}/></motion.div>)}</motion.div> : <div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">A LITTLE QUIET HERE</p><h3>No pieces found just yet</h3><p>Try another collection or adjust your search and price range.</p><Link to="/products?category=women">Explore all sarees</Link></div>}
+        </div>
+      </div>
+    </section>
+    <HaierahStandard/><Footer/>
+  </main>;
 }

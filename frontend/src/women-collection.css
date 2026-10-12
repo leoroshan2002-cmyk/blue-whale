@@ -1,0 +1,1272 @@
+/* =========================================================
+   WOMEN COLLECTION
+   Premium Indian Editorial / Saree Collection
+   ========================================================= */
+
+.wc-page {
+  --ink: #18130f;
+  --cream: #f7efe1;
+  --paper: #fbf6ed;
+  --gold: #9b7650;
+  --dark: #21150d;
+
+  background: var(--paper);
+  color: var(--ink);
+  font-family: Arial, Helvetica, sans-serif;
+  overflow: hidden;
+}
+
+.wc-page a {
+  text-decoration: none;
+}
+
+/* =========================================================
+   COMMON
+   ========================================================= */
+
+.wc-kicker {
+  margin: 0;
+  font-size: 10px;
+  line-height: 1;
+  letter-spacing: 0.26em;
+  font-weight: 500;
+}
+
+.wc-dark-kicker {
+  color: #7b6651;
+}
+
+/* =========================================================
+   HERO
+   ========================================================= */
+
+.wc-hero {
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  min-height: 720px;
+  overflow: hidden;
+  background: #21150d;
+}
+
+.wc-hero-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.wc-hero-media img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.wc-hero-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+
+  /* IMPORTANT */
+  object-fit: cover;
+  object-position: center 15%;
+
+  transform-origin: center center;
+  will-change: transform;
+}
+
+.wc-hero-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(20, 10, 5, 0.78) 0%,
+      rgba(20, 10, 5, 0.48) 32%,
+      rgba(20, 10, 5, 0.15) 65%,
+      rgba(20, 10, 5, 0.03) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.28),
+      transparent 48%
+    );
+}
+
+.wc-hero-copy {
+  position: absolute;
+  z-index: 2;
+
+  left: clamp(24px, 6vw, 78px);
+
+  /*
+   * Keep copy away from navbar and vertically centered.
+   */
+  top: 52%;
+
+  transform: translateY(-50%);
+
+  width: min(650px, 48vw);
+  max-width: 650px;
+
+  color: #fff;
+}
+
+.wc-hero-copy h1 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+
+  font-size: clamp(44px, 5.1vw, 79px);
+  line-height: 0.98;
+  letter-spacing: -0.045em;
+
+  margin: 20px 0 22px;
+}
+
+.wc-hero-description {
+  max-width: 610px;
+
+  font-size: 15px;
+  line-height: 1.7;
+
+  color: rgba(255, 255, 255, 0.9);
+
+  margin: 0 0 27px;
+}
+
+.wc-light-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 15px;
+
+  background: #f4d3a5;
+  color: #25170c;
+
+  padding: 14px 19px;
+
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+}
+
+.wc-light-button svg,
+.wc-text-link svg,
+.wc-view-all svg {
+  transition: transform 0.3s ease;
+}
+
+.wc-light-button:hover svg,
+.wc-text-link:hover svg,
+.wc-view-all:hover svg {
+  transform: translateX(4px);
+}
+
+/* =========================================================
+   ART / TRADITION SECTION
+   ========================================================= */
+
+.wc-art {
+  display: grid;
+  grid-template-columns: 43% 57%;
+
+  min-height: 360px;
+
+  background: #f8f0e3;
+}
+
+.wc-art-image {
+  min-height: 360px;
+  overflow: hidden;
+}
+
+.wc-art-image img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+
+  object-fit: cover;
+
+  /*
+   * Keep face and upper body visible.
+   */
+  object-position: 50% 35%;
+
+  transform: scale(1.01);
+  will-change: transform;
+}
+
+.wc-art-copy {
+  display: grid;
+  grid-template-columns: 1.35fr 0.8fr;
+
+  gap: 30px;
+
+  padding: 42px 5vw 42px 4vw;
+
+  align-items: center;
+}
+
+.wc-art-copy h2,
+.wc-section-heading h2,
+.wc-details-copy h2 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+
+  margin: 14px 0 18px;
+
+  font-size: clamp(34px, 3.1vw, 51px);
+}
+
+.wc-art-copy p:not(.wc-kicker),
+.wc-details-copy p:not(.wc-kicker) {
+  font-size: 13px;
+  line-height: 1.75;
+
+  color: #453a30;
+
+  max-width: 470px;
+
+  margin: 0 0 19px;
+}
+
+.wc-text-link,
+.wc-view-all {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  color: #251a12;
+
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+}
+
+.wc-benefits {
+  border-left: 1px solid rgba(40, 27, 18, 0.17);
+
+  padding-left: 28px;
+
+  display: grid;
+  gap: 26px;
+}
+
+.wc-benefits > div {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.wc-benefit-icon {
+  width: 35px;
+  height: 35px;
+
+  flex: 0 0 35px;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(70, 48, 30, 0.25);
+  border-radius: 50%;
+
+  font-size: 16px;
+}
+
+.wc-benefits strong,
+.wc-benefits small {
+  display: block;
+}
+
+.wc-benefits strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.wc-benefits small {
+  font-size: 11px;
+  margin-top: 5px;
+  color: #6b5c4d;
+}
+
+/* =========================================================
+   COLLECTIONS
+   ========================================================= */
+
+.wc-collections,
+.wc-featured {
+  padding: 43px 3.9vw 28px;
+  background: #fbf6ed;
+}
+
+.wc-section-heading {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+
+  gap: 20px;
+
+  margin-bottom: 18px;
+}
+
+.wc-section-heading h2 {
+  font-size: clamp(35px, 3vw, 48px);
+  margin: 9px 0 0;
+}
+
+.wc-collection-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+
+  gap: 12px;
+}
+
+.wc-collection-card {
+  position: relative;
+
+  height: 285px;
+
+  overflow: hidden;
+
+  background: #ddd;
+  color: #fff;
+}
+
+.wc-collection-card img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  /*
+   * Better vertical framing for model images.
+   */
+  object-position: 50% 30%;
+
+  transition:
+    transform 0.8s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.wc-collection-card:hover img {
+  transform: scale(1.045);
+}
+
+.wc-card-shade {
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      0deg,
+      rgba(20, 10, 5, 0.78),
+      rgba(20, 10, 5, 0) 62%
+    );
+}
+
+.wc-card-copy {
+  position: absolute;
+
+  left: 17px;
+  right: 17px;
+  bottom: 14px;
+}
+
+.wc-card-copy h3 {
+  font-family: Georgia, "Times New Roman", serif;
+  font-weight: 400;
+
+  font-size: 20px;
+
+  margin: 0 0 3px;
+}
+
+.wc-card-copy p {
+  font-size: 9px;
+  letter-spacing: 0.13em;
+
+  margin: 0 0 10px;
+}
+
+.wc-card-copy span {
+  display: inline-grid;
+  place-items: center;
+
+  width: 24px;
+  height: 24px;
+
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  border-radius: 50%;
+}
+
+/* =========================================================
+   DETAILS
+   ========================================================= */
+
+.wc-details {
+  display: grid;
+
+  grid-template-columns: 36% 30% 34%;
+
+  background: #f3e7d5;
+
+  min-height: 310px;
+}
+
+.wc-details-image {
+  overflow: hidden;
+  min-height: 310px;
+}
+
+.wc-details-image img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  /*
+   * Keep model and saree detail visible.
+   */
+  object-position: 50% 38%;
+
+  transform: scale(1.01);
+  will-change: transform;
+}
+
+.wc-details-copy {
+  padding: 40px 3.6vw;
+
+  display: flex;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.wc-details-copy h2 {
+  font-size: clamp(31px, 2.7vw, 43px);
+}
+
+.wc-detail-thumbs {
+  display: grid;
+
+  grid-template-columns: repeat(3, 1fr);
+
+  gap: 11px;
+
+  padding: 40px 3.8vw 40px 0;
+
+  align-items: center;
+}
+
+.wc-detail-thumb {
+  min-width: 0;
+}
+
+.wc-detail-thumb img {
+  display: block;
+
+  width: 100%;
+  height: 125px;
+
+  object-fit: cover;
+
+  /*
+   * Product detail images should show fabric,
+   * not accidentally crop the important section.
+   */
+  object-position: 50% 45%;
+}
+
+.wc-detail-thumb span {
+  display: block;
+
+  text-align: center;
+
+  margin-top: 7px;
+
+  font-size: 10px;
+  color: #57483a;
+}
+
+/* =========================================================
+   FEATURED PRODUCTS
+   ========================================================= */
+
+.wc-product-grid {
+  display: grid;
+
+  grid-template-columns: repeat(4, 1fr);
+
+  gap: 13px;
+}
+
+.wc-product-card {
+  min-width: 0;
+}
+
+.wc-product-media {
+  height: 275px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background: #eadfce;
+}
+
+.wc-product-media > a,
+.wc-product-media img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+}
+
+.wc-product-media img {
+  object-fit: cover;
+
+  /*
+   * Product model face should remain in upper/center area.
+   */
+  object-position: 50% 30%;
+
+  transition: transform 0.7s ease;
+}
+
+.wc-product-card:hover .wc-product-media img {
+  transform: scale(1.025);
+}
+
+.wc-product-heart {
+  position: absolute;
+
+  right: 12px;
+  top: 12px;
+
+  width: 31px;
+  height: 31px;
+
+  border-radius: 50%;
+
+  display: grid;
+  place-items: center;
+
+  border: 1px solid rgba(255, 255, 255, 0.75);
+
+  background: rgba(60, 40, 25, 0.16);
+
+  color: #fff;
+
+  backdrop-filter: blur(3px);
+
+  cursor: pointer;
+}
+
+.wc-product-info {
+  display: flex;
+
+  justify-content: space-between;
+  align-items: center;
+
+  padding: 12px 1px 2px;
+}
+
+.wc-product-name {
+  display: block;
+
+  font-size: 13px;
+
+  color: #221914;
+}
+
+.wc-product-price {
+  font-size: 12px;
+
+  margin-top: 5px;
+
+  color: #201711;
+}
+
+.wc-product-cart {
+  width: 34px;
+  height: 34px;
+
+  border: 1px solid rgba(35, 25, 17, 0.25);
+
+  border-radius: 50%;
+
+  display: grid;
+  place-items: center;
+
+  background: transparent;
+
+  color: #21170f;
+
+  cursor: pointer;
+
+  transition: 0.25s;
+}
+
+.wc-product-cart:hover {
+  background: #21170f;
+  color: #fff;
+}
+
+/* =========================================================
+   CLOSING BANNER
+   ========================================================= */
+
+.wc-closing {
+  height: 460px;
+
+  position: relative;
+
+  overflow: hidden;
+
+  background: #27160e;
+}
+
+.wc-closing img {
+  display: block;
+
+  width: 100%;
+  height: 100%;
+
+  object-fit: cover;
+
+  /*
+   * Keep the saree/model composition visible.
+   */
+  object-position: 50% 42%;
+
+  transform: scale(1.01);
+
+  will-change: transform;
+}
+
+.wc-closing-overlay {
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      90deg,
+      rgba(20, 8, 3, 0.12),
+      rgba(20, 8, 3, 0.75)
+    );
+}
+
+.wc-closing-copy {
+  position: absolute;
+
+  right: 9%;
+  top: 50%;
+
+  transform: translateY(-50%);
+
+  text-align: center;
+
+  color: #fff;
+}
+
+.wc-closing-copy p {
+  font-family: Georgia, "Times New Roman", serif;
+
+  font-size: clamp(25px, 3vw, 43px);
+
+  letter-spacing: 0.18em;
+
+  margin: 0 0 12px;
+}
+
+.wc-closing-copy span {
+  display: block;
+
+  font-family: Georgia, serif;
+
+  font-size: 15px;
+
+  font-style: italic;
+
+  margin-bottom: 20px;
+}
+
+.wc-closing-copy a {
+  display: inline-flex;
+
+  gap: 10px;
+
+  align-items: center;
+
+  color: #fff;
+
+  font-size: 10px;
+
+  letter-spacing: 0.14em;
+
+  border-bottom: 1px solid rgba(255, 255, 255, 0.7);
+
+  padding-bottom: 6px;
+}
+
+/* =========================================================
+   LARGE TABLET
+   ========================================================= */
+
+@media (max-width: 1200px) {
+  .wc-hero-image {
+    object-position: 60% 36%;
+  }
+
+  .wc-hero-copy {
+    width: min(600px, 52vw);
+  }
+
+  .wc-collection-card {
+    height: 270px;
+  }
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1000px) {
+  .wc-hero {
+    height: 760px;
+    min-height: 650px;
+  }
+
+  /*
+   * Move focal point slightly toward upper-middle
+   * so faces remain visible.
+   */
+  .wc-hero-image {
+    object-position: 60% 34%;
+  }
+
+  .wc-hero-copy {
+    left: 5vw;
+    width: min(580px, 58vw);
+
+    top: 54%;
+  }
+
+  .wc-hero-copy h1 {
+    font-size: clamp(43px, 6vw, 65px);
+  }
+
+  .wc-art {
+    grid-template-columns: 1fr;
+  }
+
+  .wc-art-image {
+    min-height: 430px;
+  }
+
+  .wc-art-image img {
+    min-height: 430px;
+
+    object-position: 50% 35%;
+  }
+
+  .wc-art-copy {
+    grid-template-columns: 1fr;
+
+    padding: 36px;
+  }
+
+  .wc-benefits {
+    border-left: 0;
+
+    border-top: 1px solid rgba(40, 27, 18, 0.17);
+
+    padding: 25px 0 0;
+
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .wc-collection-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .wc-collection-card {
+    height: 300px;
+  }
+
+  .wc-collection-card:nth-child(4),
+  .wc-collection-card:nth-child(5) {
+    display: none;
+  }
+
+  .wc-details {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .wc-details-image {
+    grid-row: span 2;
+  }
+
+  .wc-details-image img {
+    object-position: 50% 35%;
+  }
+
+  .wc-detail-thumbs {
+    grid-column: 2;
+
+    padding: 0 30px 30px;
+  }
+
+  .wc-product-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .wc-product-media {
+    height: 320px;
+  }
+
+  .wc-product-media img {
+    object-position: 50% 28%;
+  }
+
+  .wc-closing {
+    height: 420px;
+  }
+
+  .wc-closing img {
+    object-position: 50% 40%;
+  }
+}
+
+/* =========================================================
+   SMALL TABLET / LARGE MOBILE
+   ========================================================= */
+
+@media (max-width: 768px) {
+  .wc-hero {
+    height: 720px;
+    min-height: 720px;
+  }
+
+  .wc-hero-image {
+    /*
+     * Mobile needs a different focal point.
+     * Keep the woman's face in frame.
+     */
+    object-position: 62% 30%;
+  }
+
+  .wc-hero-overlay {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(20, 10, 5, 0.76),
+        rgba(20, 10, 5, 0.25)
+      ),
+      linear-gradient(
+        0deg,
+        rgba(0, 0, 0, 0.5),
+        transparent 65%
+      );
+  }
+
+  .wc-hero-copy {
+    left: 24px;
+    right: 24px;
+
+    width: auto;
+    max-width: none;
+
+    top: auto;
+    bottom: 62px;
+
+    transform: none;
+  }
+
+  .wc-hero-copy h1 {
+    font-size: clamp(40px, 9vw, 55px);
+
+    line-height: 0.97;
+
+    margin: 17px 0 18px;
+  }
+
+  .wc-hero-description {
+    max-width: 520px;
+
+    font-size: 13px;
+    line-height: 1.6;
+
+    margin-bottom: 22px;
+  }
+
+  .wc-light-button {
+    padding: 13px 17px;
+  }
+
+  .wc-art-image {
+    min-height: 400px;
+  }
+
+  .wc-art-image img {
+    min-height: 400px;
+    object-position: 50% 32%;
+  }
+
+  .wc-collections,
+  .wc-featured {
+    padding: 35px 24px 24px;
+  }
+
+  .wc-collection-grid {
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 9px;
+  }
+
+  .wc-collection-card {
+    height: 270px;
+  }
+
+  .wc-collection-card:nth-child(4),
+  .wc-collection-card:nth-child(5) {
+    display: block;
+  }
+
+  .wc-collection-card img {
+    object-position: 50% 28%;
+  }
+
+  .wc-details {
+    display: block;
+  }
+
+  .wc-details-image {
+    min-height: 400px;
+  }
+
+  .wc-details-image img {
+    object-position: 50% 35%;
+  }
+
+  .wc-details-copy {
+    padding: 34px 24px;
+  }
+
+  .wc-detail-thumbs {
+    padding: 0 24px 34px;
+  }
+
+  .wc-product-grid {
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 20px 12px;
+  }
+
+  .wc-product-media {
+    height: 300px;
+  }
+
+  .wc-product-media img {
+    object-position: 50% 27%;
+  }
+
+  .wc-closing {
+    height: 410px;
+  }
+
+  .wc-closing img {
+    object-position: 52% 38%;
+  }
+
+  .wc-closing-copy {
+    left: 20px;
+    right: 20px;
+  }
+
+  .wc-closing-copy p {
+    font-size: 26px;
+    letter-spacing: 0.1em;
+  }
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 640px) {
+  .wc-hero {
+    height: 720px;
+    min-height: 720px;
+  }
+
+  /*
+   * Main fix for mobile hero.
+   * Face stays toward the upper-middle/right.
+   */
+  .wc-hero-image {
+    object-position: 64% 28%;
+  }
+
+  .wc-hero-copy {
+    left: 22px;
+    right: 22px;
+
+    bottom: 52px;
+  }
+
+  .wc-hero-copy h1 {
+    font-size: 43px;
+  }
+
+  .wc-hero-description {
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .wc-art-copy {
+    padding: 34px 22px;
+  }
+
+  .wc-benefits {
+    grid-template-columns: 1fr;
+
+    gap: 18px;
+  }
+
+  .wc-collections,
+  .wc-featured {
+    padding: 35px 18px 24px;
+  }
+
+  .wc-section-heading {
+    align-items: flex-start;
+  }
+
+  .wc-section-heading h2 {
+    font-size: 34px;
+  }
+
+  .wc-view-all {
+    margin-top: 6px;
+  }
+
+  .wc-collection-grid {
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 8px;
+  }
+
+  .wc-collection-card {
+    height: 255px;
+  }
+
+  .wc-collection-card img {
+    object-position: 50% 25%;
+  }
+
+  .wc-details {
+    display: block;
+  }
+
+  .wc-details-image {
+    min-height: 350px;
+  }
+
+  .wc-details-image img {
+    object-position: 50% 32%;
+  }
+
+  .wc-details-copy {
+    padding: 32px 22px;
+  }
+
+  .wc-detail-thumbs {
+    padding: 0 22px 34px;
+  }
+
+  .wc-product-grid {
+    grid-template-columns: repeat(2, 1fr);
+
+    gap: 18px 10px;
+  }
+
+  .wc-product-media {
+    height: 255px;
+  }
+
+  .wc-product-media img {
+    object-position: 50% 25%;
+  }
+
+  .wc-closing {
+    height: 390px;
+  }
+
+  .wc-closing img {
+    object-position: 52% 35%;
+  }
+
+  .wc-closing-copy {
+    left: 20px;
+    right: 20px;
+  }
+
+  .wc-closing-copy p {
+    font-size: 25px;
+
+    letter-spacing: 0.1em;
+  }
+}
+
+/* =========================================================
+   VERY SMALL MOBILE
+   ========================================================= */
+
+@media (max-width: 420px) {
+  .wc-hero {
+    height: 700px;
+    min-height: 700px;
+  }
+
+  .wc-hero-image {
+    /*
+     * Slightly more right/up on narrow phones
+     * to keep the model's face visible.
+     */
+    object-position: 66% 27%;
+  }
+
+  .wc-hero-copy {
+    left: 18px;
+    right: 18px;
+    bottom: 42px;
+  }
+
+  .wc-hero-copy h1 {
+    font-size: 39px;
+  }
+
+  .wc-hero-description {
+    font-size: 12.5px;
+  }
+
+  .wc-collection-card {
+    height: 235px;
+  }
+
+  .wc-card-copy {
+    left: 13px;
+    right: 13px;
+    bottom: 12px;
+  }
+
+  .wc-card-copy h3 {
+    font-size: 18px;
+  }
+
+  .wc-product-media {
+    height: 235px;
+  }
+
+  .wc-details-image {
+    min-height: 320px;
+  }
+
+  .wc-closing {
+    height: 360px;
+  }
+}
+
+/* =========================================================
+   REDUCED MOTION
+   ========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+  .wc-hero-image,
+  .wc-art-image img,
+  .wc-details-image img,
+  .wc-closing img,
+  .wc-collection-card img,
+  .wc-product-media img {
+    transform: none !important;
+    transition: none !important;
+  }
+
+  .wc-light-button svg,
+  .wc-text-link svg,
+  .wc-view-all svg {
+    transition: none;
+  }
+}
+
+.wc-collection-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.wc-collection-card img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 25%;
+}
+
+.wc-details-image {
+  overflow: hidden;
+}
+
+.wc-details-image img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 25%;
+}
+
+.wc-detail-thumb {
+  overflow: hidden;
+}
+
+.wc-detail-thumb img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center center;
+}
+
+.wc-product-media {
+  overflow: hidden;
+}
+
+.wc-product-media img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 20%;
+}
+
+.wc-closing {
+  position: relative;
+  overflow: hidden;
+}
+
+.wc-closing > img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  object-position: center 25%;
+}

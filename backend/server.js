@@ -71,21 +71,29 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/contact", contactRoutes);
 
 const DEFAULT_PORT = Number(process.env.PORT || 5001);
+const MAX_PORT_ATTEMPTS = 10;
 
-const startServer = (port) => {
+const startServer = (port, attempt = 1) => {
   const server = app.listen(port, () => {
     console.log(`Server is running on port ${port}`);
   });
 
   server.on("error", (error) => {
     if (error.code === "EADDRINUSE") {
-      console.error(
-        `Port ${port} is already in use. Set PORT in .env to a free port or stop the process using that port.`,
-      );
-    } else {
-      console.error(`Failed to start server on port ${port}:`, error.message);
+      const nextPort = port + 1;
+      if (attempt >= MAX_PORT_ATTEMPTS) {
+        console.error(
+          `Unable to find a free port after ${MAX_PORT_ATTEMPTS} attempts. Please set PORT in .env to a free port.`,
+        );
+        return;
+      }
+
+      console.warn(`Port ${port} is already in use. Retrying on ${nextPort}.`);
+      startServer(nextPort, attempt + 1);
+      return;
     }
-   
+
+    console.error(`Failed to start server on port ${port}:`, error.message);
   });
 };
 

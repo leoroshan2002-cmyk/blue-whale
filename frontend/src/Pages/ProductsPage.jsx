@@ -24,6 +24,7 @@ export default function ProductsPage() {
   const searchFilter = params.get("search") || "";
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [search, setSearch] = useState(searchFilter);
   const [sort, setSort] = useState("featured");
   const [maxPrice, setMaxPrice] = useState(null);
@@ -35,8 +36,21 @@ export default function ProductsPage() {
     let cancelled = false;
     const load = async () => {
       setLoading(true);
-      const items = await fetchProducts();
-      if (!cancelled) { setProducts(Array.isArray(items) ? items : []); setLoading(false); }
+      try {
+        const items = await fetchProducts();
+        if (!cancelled) {
+          setProducts(items);
+          setLoadError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load products:", error);
+          setProducts([]);
+          setLoadError(error?.response?.data?.message || error?.message || "Unable to load products.");
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
     };
     load();
     const refresh = () => load();
@@ -96,7 +110,7 @@ export default function ProductsPage() {
           <div className="bw-filter-note"><span>✳</span><p>Made to be treasured. Find a drape that feels like you.</p></div>
         </aside>
         <div className="bw-shop-results"><div className="bw-results-toolbar"><span>{loading ? "Loading pieces" : `Showing ${filteredProducts.length} pieces`}</span><label><ArrowDownWideNarrow size={15}/><select value={sort} onChange={(e) => setSort(e.target.value)} aria-label="Sort products"><option value="featured">Featured</option><option value="price-low">Price: low to high</option><option value="price-high">Price: high to low</option><option value="name">Name</option></select></label></div>
-          {loading ? <div className="bw-product-grid">{Array.from({length:8},(_,i)=><div className="bw-skeleton" key={i}/>)}</div> : filteredProducts.length ? <motion.div className="bw-product-grid" initial="hidden" animate="visible" variants={{visible:{transition:{staggerChildren:.06}}}}>{filteredProducts.map((product) => <motion.div key={product.id || product._id} variants={{hidden:{opacity:0,y:22},visible:{opacity:1,y:0}}} transition={{duration:.55}}><ProductCard product={product} onAddToCart={handleCart} onWishlist={toggleWishlist}/></motion.div>)}</motion.div> : <div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">A LITTLE QUIET HERE</p><h3>No pieces found just yet</h3><p>Try another collection or adjust your search and price range.</p><Link to="/products?category=women">Explore all sarees</Link></div>}
+          {loading ? <div className="bw-product-grid">{Array.from({length:8},(_,i)=><div className="bw-skeleton" key={i}/>)}</div> : loadError ? <div className="bw-empty" role="alert"><h3>Products could not be loaded</h3><p>{loadError}</p></div> : filteredProducts.length ? <motion.div className="bw-product-grid" initial="hidden" animate="visible" variants={{visible:{transition:{staggerChildren:.06}}}}>{filteredProducts.map((product) => <motion.div key={product.id || product._id} variants={{hidden:{opacity:0,y:22},visible:{opacity:1,y:0}}} transition={{duration:.55}}><ProductCard product={product} onAddToCart={handleCart} onWishlist={toggleWishlist}/></motion.div>)}</motion.div> : <div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">A LITTLE QUIET HERE</p><h3>No pieces found just yet</h3><p>Try another collection or adjust your search and price range.</p><Link to="/products?category=women">Explore all sarees</Link></div>}
         </div>
       </div>
     </section>

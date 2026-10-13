@@ -85,6 +85,7 @@ export default function WomenCollectionPage() {
   const root = useRef(null);
   const location = useLocation();
   const [products, setProducts] = useState([]);
+  const [productsError, setProductsError] = useState("");
   const { addToCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const { requireAuthAction } = useRequireAuthAction();
@@ -104,9 +105,16 @@ export default function WomenCollectionPage() {
     const load = async () => {
       try {
         const data = await fetchProducts();
-        if (!cancelled) setProducts(Array.isArray(data) ? data : []);
-      } catch {
-        if (!cancelled) setProducts([]);
+        if (!cancelled) {
+          setProducts(data);
+          setProductsError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load women's collection products:", error);
+          setProducts([]);
+          setProductsError(error?.response?.data?.message || error?.message || "Unable to load products.");
+        }
       }
     };
     load();
@@ -247,7 +255,7 @@ export default function WomenCollectionPage() {
           <Link to="/products" className="wc-view-all">VIEW ALL <Arrow /></Link>
         </div>
         <div className="wc-product-grid">
-          {womenProducts.map((product) => (
+          {productsError ? <p role="alert">{productsError}</p> : womenProducts.map((product) => (
             <EditorialProductCard key={product.id || product._id} product={product} onAddToCart={handleAddToCart} onWishlist={handleWishlist} wishlisted={isWishlisted(product.id)} />
           ))}
         </div>

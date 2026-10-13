@@ -24,6 +24,8 @@ export default function CategoryPage() {
   const [products, setProducts] = useState([]);
   const [loadingCategory, setLoadingCategory] = useState(true);
   const [loadingProducts, setLoadingProducts] = useState(true);
+  const [categoryError, setCategoryError] = useState("");
+  const [productsError, setProductsError] = useState("");
   const { addToCart } = useCart();
   const { requireAuthAction } = useRequireAuthAction();
   const { toggleWishlist } = useWishlist();
@@ -32,10 +34,19 @@ export default function CategoryPage() {
     let cancelled = false;
     const loadCategory = async () => {
       setLoadingCategory(true);
-      const categories = await fetchCategories();
-      if (cancelled) return;
-      setCategory(categories.find((item) => item.slug === slug || item.slug === encodeURIComponent(slug)) || null);
-      setLoadingCategory(false);
+      try {
+        const categories = await fetchCategories();
+        if (cancelled) return;
+        setCategory(categories.find((item) => item.slug === slug || item.slug === encodeURIComponent(slug)) || null);
+        setCategoryError("");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load categories:", error);
+          setCategoryError(error?.response?.data?.message || error?.message || "Unable to load categories.");
+        }
+      } finally {
+        if (!cancelled) setLoadingCategory(false);
+      }
     };
     loadCategory();
     return () => { cancelled = true; };
@@ -45,10 +56,20 @@ export default function CategoryPage() {
     let cancelled = false;
     const loadProducts = async () => {
       setLoadingProducts(true);
-      const response = await fetchProducts();
-      if (cancelled) return;
-      setProducts(response);
-      setLoadingProducts(false);
+      try {
+        const response = await fetchProducts();
+        if (cancelled) return;
+        setProducts(response);
+        setProductsError("");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load category products:", error);
+          setProducts([]);
+          setProductsError(error?.response?.data?.message || error?.message || "Unable to load products.");
+        }
+      } finally {
+        if (!cancelled) setLoadingProducts(false);
+      }
     };
     loadProducts();
     const handleInventoryChange = () => loadProducts();
@@ -81,6 +102,10 @@ export default function CategoryPage() {
     return <div className="min-h-screen bg-[#f8f7f5] px-4 pb-24 pt-24 sm:px-8"><div className="mx-auto grid max-w-[1440px] grid-cols-2 gap-4 sm:gap-6 md:grid-cols-4">{Array.from({ length: 8 }).map((_, index) => <div key={index} className="aspect-[3/4] animate-pulse rounded-2xl bg-gray-200" />)}</div></div>;
   }
 
+  if (categoryError && !category) {
+    return <div className="min-h-screen bg-[#f8f7f5] px-6 pb-24 pt-28 text-center" role="alert"><h1 className="mb-4 text-2xl font-bold">Unable to load this collection</h1><p>{categoryError}</p><Link to="/products" className="mt-6 inline-block rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse all products</Link></div>;
+  }
+
   if (!category) {
     return <div className="min-h-screen bg-[#f8f7f5] px-6 pb-24 pt-28 text-center"><h1 className="mb-4 text-4xl font-bold">Category not found</h1><Link to="/products" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse all products</Link></div>;
   }
@@ -95,7 +120,7 @@ export default function CategoryPage() {
           <div><p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.28em] text-[#b36c42] sm:text-[10px]">The Haierah edit / 2026</p><h1 className="font-serif text-4xl tracking-[-0.04em] sm:text-5xl lg:text-6xl">{category.name}</h1><p className="mt-3 max-w-xl text-sm leading-6 text-[#172333]/65 sm:mt-4 sm:leading-7">Considered pieces for everyday movement, cut with intention and made to stay in rotation.</p></div>
           <div className="flex flex-col items-start gap-4 md:items-end"><span className="text-[10px] uppercase tracking-[0.2em] text-[#172333]/55 sm:text-xs">{filteredProducts.length} {filteredProducts.length === 1 ? "piece" : "pieces"}</span>{availableSubcategories.length > 0 && <nav className="flex flex-wrap gap-2" aria-label={`${category.name} subcategories`}><Link to={`/category/${category.slug}`} className={`rounded-full border px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] sm:px-4 ${!subcategory ? "border-[#172333] bg-[#172333] text-white" : "border-[#172333]/20 text-[#172333]/65"}`}>All</Link>{availableSubcategories.map((item) => <Link key={item} to={`/category/${category.slug}?subcategory=${encodeURIComponent(item)}`} className={`rounded-full border px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] sm:px-4 ${normalizeValue(subcategory) === normalizeValue(item) ? "border-[#b36c42] bg-[#b36c42] text-white" : "border-[#172333]/20 text-[#172333]/65"}`}>{item}</Link>)}</nav>}</div>
         </motion.header>
-        {filteredProducts.length > 0 ? <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.08 }} variants={{ visible: { transition: { staggerChildren: 0.07 } } }} className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4">{filteredProducts.map((product) => <motion.div key={product.id} variants={reveal} transition={{ duration: 0.6 }}><ProductCard product={product} onAddToCart={() => { if (!requireAuthAction("addToCart", product)) return; addToCart(product); }} onWishlist={toggleWishlist} /></motion.div>)}</motion.div> : <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center sm:p-16"><h3 className="mb-3 text-2xl font-semibold">No products yet</h3><p className="mb-6 text-slate-500">There are no products assigned to the {category.name} category yet.</p><Link to="/products" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse other categories</Link></div>}
+        {productsError ? <div className="rounded-3xl border border-red-200 bg-white p-8 text-center text-red-700" role="alert"><h3 className="mb-3 text-2xl font-semibold">Products could not be loaded</h3><p>{productsError}</p></div> : filteredProducts.length > 0 ? <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.08 }} variants={{ visible: { transition: { staggerChildren: 0.07 } } }} className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4">{filteredProducts.map((product) => <motion.div key={product.id} variants={reveal} transition={{ duration: 0.6 }}><ProductCard product={product} onAddToCart={() => { if (!requireAuthAction("addToCart", product)) return; addToCart(product); }} onWishlist={toggleWishlist} /></motion.div>)}</motion.div> : <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center sm:p-16"><h3 className="mb-3 text-2xl font-semibold">No products yet</h3><p className="mb-6 text-slate-500">There are no products assigned to the {category.name} category yet.</p><Link to="/products" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse other categories</Link></div>}
       </div>
       <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="mx-auto mt-8 max-w-[1440px] px-4 sm:mt-12 sm:px-8 lg:px-12">
         {/* <PromoGrid category={category.slug} variant="bottom" /> */}

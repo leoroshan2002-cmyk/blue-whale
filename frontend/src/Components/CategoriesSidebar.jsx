@@ -120,6 +120,7 @@ const categoryNameMap = {
 const CategoriesSidebar = ({ open, setOpen, activeMenu }) => {
     const [activeImage, setActiveImage] = useState("");
     const [categories, setCategories] = useState([]);
+    const [categoryLoadError, setCategoryLoadError] = useState("");
 
     const navigate = useNavigate();
     const pageCategory = categoryNameMap[activeMenu] || activeMenu;
@@ -148,8 +149,15 @@ const CategoriesSidebar = ({ open, setOpen, activeMenu }) => {
 
     useEffect(() => {
         const loadCategories = async () => {
-            const response = await fetchCategories();
-            setCategories(response);
+            try {
+                const response = await fetchCategories();
+                setCategories(response);
+                setCategoryLoadError("");
+            } catch (error) {
+                console.error("Failed to load navigation categories:", error);
+                setCategories([]);
+                setCategoryLoadError(error?.response?.data?.message || error?.message || "Unable to load categories.");
+            }
         };
 
         loadCategories();
@@ -261,6 +269,11 @@ const CategoriesSidebar = ({ open, setOpen, activeMenu }) => {
 
                             {/* ITEMS */}
                             <div className="mt-12 space-y-2">
+                                {categoryLoadError && (
+                                    <p className="px-4 text-sm text-red-300" role="alert">
+                                        Categories could not be loaded: {categoryLoadError}
+                                    </p>
+                                )}
                                 {categoriesToRender.map((item, index) => {
                                     const Icon = item.icon || (item.name?.toUpperCase().includes('JEANS') ? Shirt : Sparkles);
 

@@ -19,6 +19,8 @@ export default function ProductPage() {
   const { id } = useParams();
   const [product, setProduct] = useState(null);
   const [catalog, setCatalog] = useState([]);
+  const [productError, setProductError] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -32,8 +34,23 @@ export default function ProductPage() {
     setSelectedColor(0);
     setQuantity(1);
     const load = async () => {
-      const [detail, all] = await Promise.all([fetchProductById(id), fetchProducts()]);
-      if (!cancelled) { setProduct(detail || (all || []).find((p) => String(p.id || p._id) === String(id)) || null); setCatalog(Array.isArray(all) ? all : []); }
+      setIsLoading(true);
+      try {
+        const [detail, all] = await Promise.all([fetchProductById(id), fetchProducts()]);
+        if (!cancelled) {
+          setProduct(detail);
+          setCatalog(all);
+          setProductError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load product:", error);
+          setProduct(null);
+          setProductError(error?.response?.data?.message || error?.message || "Unable to load this product.");
+        }
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
     };
     load();
     const refresh = () => load();
@@ -49,7 +66,7 @@ export default function ProductPage() {
   const discount = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
   const related = useMemo(() => getRelatedSarees(product, catalog, 4), [catalog, product]);
 
-  if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>Finding your piece…</h2><p>If the product does not appear, it may no longer be available.</p><Link to="/products?category=women">Back to collection</Link></div></main>;
+  if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>{isLoading ? "Finding your piece…" : productError ? "Product could not be loaded" : "Product not found"}</h2><p>{productError || "This product may no longer be available."}</p><Link to="/products?category=women">Back to collection</Link></div></main>;
 
   const selectedColorValue = colors[selectedColor];
   const stock = Number(product.stock ?? 0);

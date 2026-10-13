@@ -1,16 +1,23 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+## Backend connection
 
-Currently, two official plugins are available:
+The frontend calls the Express API in `src/services/api.js`. Set `VITE_API_URL` to the backend origin (for example, `http://localhost:5001`) in `.env`, or leave it unset to use the Vite development proxy. The proxy forwards `/api/*` and `/uploads/*` to `http://localhost:5001`; override that target with `VITE_API_PROXY_TARGET` if the backend runs on another port or host.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+For local development, start the backend from `../backend` and run `npm run dev` in this directory. The backend defaults to port `5001`, and Vite defaults to `5173`.
 
-## React Compiler
+## API routes used by the frontend
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+| Feature | Backend request |
+| --- | --- |
+| Product catalog | `GET /api/products`, `GET /api/products/:id` |
+| Categories | `GET /api/categories` |
+| Campaigns | `GET /api/campaigns/:category`, `PUT /api/campaigns/:category` |
+| Authentication | `/api/auth/*` |
+| User profile | `/api/users/:id` |
+| Orders | `/api/orders/*` |
+| Payments | `/api/payment/create-order`, `/api/payment/verify` |
+| Contact form | `POST /api/contact` |
+| Admin management | `/api/admin/*` |
 
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and Oxlint's TypeScript related rules in your project.
+Protected requests include the session cookie (`withCredentials`); the backend must allow the frontend origin and credentials.

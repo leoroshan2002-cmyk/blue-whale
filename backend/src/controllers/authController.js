@@ -6,7 +6,8 @@ import User from '../models/User.js';
 import emailService from '../services/email/emailService.js';
 
 const isValidEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-key';
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID || '');
 
 const parseCsvList = (value) =>
   String(value || '')
@@ -89,7 +90,7 @@ const setAuthCookie = (res, user) => {
       email: user.email,
       role: user.role,
     },
-    process.env.JWT_SECRET,
+    JWT_SECRET,
     { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
   );
 

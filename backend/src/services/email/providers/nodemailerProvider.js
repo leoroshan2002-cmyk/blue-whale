@@ -1,34 +1,39 @@
 import nodemailer from 'nodemailer';
 
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.example.com',
-  port: Number(process.env.SMTP_PORT) || 587,
-  secure: process.env.SMTP_SECURE === 'true' || false,
-  connectionTimeout: 10_000,
-  greetingTimeout: 10_000,
-  socketTimeout: 15_000,
-  auth: process.env.SMTP_USER
-    ? {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      }
-    : undefined,
-  logger: true,
-  debug: true,
-  tls: {
-    // allow self-signed certificates when explicitly disabled by env
-    rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED === 'false' ? false : true,
-  },
-});
+const hasSmtpConfig = Boolean(process.env.SMTP_HOST || process.env.SMTP_USER);
 
-// Verify connection configuration on startup to provide clear errors
-transporter.verify()
-  .then(() => {
-    console.log('SMTP transporter verified');
-  })
-  .catch((err) => {
-    console.error('SMTP transporter verification failed:', err?.message || err);
-  });
+const transporter = hasSmtpConfig
+  ? nodemailer.createTransport({
+      host: process.env.SMTP_HOST || 'smtp.example.com',
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === 'true' || false,
+      connectionTimeout: 10_000,
+      greetingTimeout: 10_000,
+      socketTimeout: 15_000,
+      auth: process.env.SMTP_USER
+        ? {
+            user: process.env.SMTP_USER,
+            pass: process.env.SMTP_PASS,
+          }
+        : undefined,
+      logger: true,
+      debug: true,
+      tls: {
+        rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED === 'false' ? false : true,
+      },
+    })
+  : null;
+
+if (transporter) {
+  transporter
+    .verify()
+    .then(() => {
+      console.log('SMTP transporter verified');
+    })
+    .catch((err) => {
+      console.warn('SMTP transporter verification failed:', err?.message || err);
+    });
+}
 
 export default {
   send: async ({ to, subject, html, text, from }) => {
@@ -39,6 +44,11 @@ export default {
       text: text || '',
       html,
     };
+
+    if (!transporter) {
+      console.warn(`Skipping email send to ${to}. SMTP is not configured.`);
+      return { skipped: true, messageId: null, warnings: ['SMTP not configured'] };
+    }
 
     try {
       const info = await transporter.sendMail(mailOptions);

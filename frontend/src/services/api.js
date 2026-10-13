@@ -1,7 +1,6 @@
 import axios from 'axios';
 import campaignData from '../Components/Data/campaignData';
 import { sanitizeProductForClient } from '../utils/productImages';
-import.meta.env.VITE_API_URL
 const rawBaseApiUrl = (import.meta.env.VITE_API_URL || '').trim();
 const normalizedBaseApiUrl = rawBaseApiUrl.replace(/\/$/, '');
 
@@ -63,10 +62,6 @@ const withResolvedImages = (product) => {
   };
 };
 
-const categoriesUrl = buildApiUrl('/api/categories');
-const productsUrl = buildApiUrl('/api/products');
-const campaignsUrl = buildApiUrl('/api/campaigns');
-
 const createCache = (ttlMs = 30_000) => {
   let cached = null;
   let lastFetch = 0;
@@ -75,7 +70,6 @@ const createCache = (ttlMs = 30_000) => {
   const isStale = () => !cached || Date.now() - lastFetch > ttlMs;
 
   return {
-    get() { return cached; },
     async fetch(fetcher) {
       if (!isStale() && cached) return cached;
       if (inflight) return inflight;
@@ -104,41 +98,34 @@ const categoriesCache = createCache(60_000);
 const productsCache = createCache(30_000);
 
 export const fetchCategories = async () => {
-  try {
-    return await categoriesCache.fetch(async () => {
-      const { data } = await apiClient.get(categoriesUrl);
-      return Array.isArray(data?.categories) ? data.categories : [];
-    });
-  } catch (error) {
-    console.error('Failed to fetch categories:', error);
-    return categoriesCache.get() || [];
-  }
+  return categoriesCache.fetch(async () => {
+    const { data } = await apiClient.get('/api/categories');
+    if (!Array.isArray(data?.categories)) {
+      throw new Error(data?.message || 'The categories API returned an invalid response.');
+    }
+    return data.categories;
+  });
 };
 
 export const fetchProducts = async () => {
-  try {
-    return await productsCache.fetch(async () => {
-      const { data } = await apiClient.get(productsUrl);
-      const products = Array.isArray(data?.products) ? data.products : [];
-      return products.map((product) => sanitizeProductForClient(withResolvedImages(product)));
-    });
-  } catch (error) {
-    console.error('Failed to fetch products:', error);
-    return productsCache.get() || [];
-  }
+  return productsCache.fetch(async () => {
+    const { data } = await apiClient.get('/api/products');
+    if (!Array.isArray(data?.products)) {
+      throw new Error(data?.message || 'The products API returned an invalid response.');
+    }
+    return data.products.map((product) => sanitizeProductForClient(withResolvedImages(product)));
+  });
 };
 
 export const invalidateProductCache = () => productsCache.invalidate();
 export const invalidateCategoryCache = () => categoriesCache.invalidate();
 
 export const fetchProductById = async (id) => {
-  try {
-    const { data } = await apiClient.get(buildApiUrl(`/api/products/${id}`));
-    return sanitizeProductForClient(withResolvedImages(data?.product || null));
-  } catch (error) {
-    console.error('Failed to fetch product:', error);
-    return null;
+  const { data } = await apiClient.get(`/api/products/${encodeURIComponent(id)}`);
+  if (!data?.product) {
+    throw new Error(data?.message || 'The product API returned an invalid response.');
   }
+  return sanitizeProductForClient(withResolvedImages(data.product));
 };
 
 const createEmptyCampaign = (category = 'women') => ({
@@ -230,7 +217,7 @@ export const getCampaign = async (category) => {
     : normalizedCategory;
 
   try {
-    const { data } = await apiClient.get(`${campaignsUrl}/${encodeURIComponent(normalizedCategory)}`);
+    const { data } = await apiClient.get(`/api/campaigns/${encodeURIComponent(normalizedCategory)}`);
     if (data?.success && data?.campaign) {
       return normalizeCampaign(data.campaign, normalizedCategory);
     }
@@ -274,7 +261,7 @@ export const saveCampaign = async (campaignDataToSave) => {
 
   try {
     const { data } = await apiClient.put(
-      `${campaignsUrl}/${encodeURIComponent(normalizedCategory)}`,
+      `/api/campaigns/${encodeURIComponent(normalizedCategory)}`,
       formData
     );
 

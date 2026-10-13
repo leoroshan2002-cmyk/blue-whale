@@ -6,21 +6,30 @@ import { Link } from "react-router-dom";
 
 export default function NewArrivals() {
   const [products, setProducts] = useState([]);
+  const [loadError, setLoadError] = useState("");
 
   useEffect(() => {
     let mounted = true;
 
     const load = async () => {
-      const all = await fetchProducts();
-      if (!mounted) return;
+      try {
+        const all = await fetchProducts();
+        if (!mounted) return;
 
-      const sorted = all.slice().sort((a, b) => {
-        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : (a.id || 0);
-        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : (b.id || 0);
-        return bTime - aTime;
-      });
+        const sorted = all.slice().sort((a, b) => {
+          const aTime = a.createdAt ? new Date(a.createdAt).getTime() : (a.id || 0);
+          const bTime = b.createdAt ? new Date(b.createdAt).getTime() : (b.id || 0);
+          return bTime - aTime;
+        });
 
-      setProducts(sorted.slice(0, 8));
+        setProducts(sorted.slice(0, 8));
+        setLoadError("");
+      } catch (error) {
+        if (!mounted) return;
+        console.error("Failed to load new arrivals:", error);
+        setProducts([]);
+        setLoadError(error?.response?.data?.message || error?.message || "Unable to load new arrivals.");
+      }
     };
 
     load();
@@ -129,7 +138,9 @@ export default function NewArrivals() {
                 );
               })
             ) : (
-              <div className="w-full py-12 text-center text-slate-500">No new arrivals yet.</div>
+              <div className="w-full py-12 text-center text-slate-500" role={loadError ? "alert" : undefined}>
+                {loadError || "No new arrivals yet."}
+              </div>
             )}
           </div>
         </div>

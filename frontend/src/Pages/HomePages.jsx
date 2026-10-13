@@ -1,8 +1,10 @@
-import React, { useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
+import { fetchProducts } from "../services/api";
+import { subscribeToCatalogChanges } from "../utils/catalogSync";
 
 import HomeFooter from "../Components/home/HomeFooter";
 import "../home.css";
@@ -110,9 +112,44 @@ export default function HomePage() {
 
   const [gender, setGender] = useState("women");
   const [colourIndex, setColourIndex] = useState(0);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [featuredProductsError, setFeaturedProductsError] = useState("");
+  const [isLoadingFeaturedProducts, setIsLoadingFeaturedProducts] = useState(true);
 
   const colours = gender === "women" ? WOMEN_COLOURS : MEN_COLOURS;
   const selected = colours[colourIndex % colours.length];
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadFeaturedProducts = async () => {
+      try {
+        const products = await fetchProducts();
+        if (!cancelled) {
+          setFeaturedProducts(products.slice(0, 5));
+          setFeaturedProductsError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load homepage products:", error);
+          setFeaturedProducts([]);
+          setFeaturedProductsError(
+            error?.response?.data?.message || error?.message || "Unable to load products."
+          );
+        }
+      } finally {
+        if (!cancelled) setIsLoadingFeaturedProducts(false);
+      }
+    };
+
+    void loadFeaturedProducts();
+    const unsubscribe = subscribeToCatalogChanges(loadFeaturedProducts);
+
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   // GSAP ANIMATIONS
   useLayoutEffect(() => {
@@ -375,6 +412,12 @@ export default function HomePage() {
             <br />
             chosen with love, worn into memories.
           </p>
+          {isLoadingFeaturedProducts && (
+            <p role="status">Loading featured products…</p>
+          )}
+          {featuredProductsError && (
+            <p role="status">Live products are unavailable: {featuredProductsError}</p>
+          )}
 
           <Link className="bw-button" to="/products">
             EXPLORE ALL <ArrowRight size={14} />
@@ -382,24 +425,39 @@ export default function HomePage() {
         </div>
 
         <div className="bw-best-grid">
-          {BEST.map((src, i) => (
-            <Link
-              to={i === 1 ? "/category/men" : "/category/women"}
-              className={`bw-best-card card-${i}`}
-              key={`best-${i}`}
-              data-bw-parallax
-            >
-              <img
-                src={src}
-                alt={
-                  i === 1
-                    ? "Blue Whale men's traditional collection"
-                    : "Blue Whale saree collection"
-                }
-                loading="lazy"
-              />
-            </Link>
-          ))}
+          {featuredProducts.length > 0
+            ? featuredProducts.map((product, i) => (
+                <Link
+                  to={`/product/${product.id || product._id}`}
+                  className={`bw-best-card card-${i}`}
+                  key={product.id || product._id}
+                  data-bw-parallax
+                >
+                  <img
+                    src={product.image || product.images?.[0] || BEST[i % BEST.length]}
+                    alt={product.name}
+                    loading="lazy"
+                  />
+                </Link>
+              ))
+            : BEST.map((src, i) => (
+                <Link
+                  to={i === 1 ? "/category/men" : "/category/women"}
+                  className={`bw-best-card card-${i}`}
+                  key={`best-${i}`}
+                  data-bw-parallax
+                >
+                  <img
+                    src={src}
+                    alt={
+                      i === 1
+                        ? "Blue Whale men's traditional collection"
+                        : "Blue Whale saree collection"
+                    }
+                    loading="lazy"
+                  />
+                </Link>
+              ))}
         </div>
       </section>
 

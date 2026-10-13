@@ -1,6 +1,8 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 
+const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-key';
+
 export const protect = async (req, res, next) => {
   try {
     const tokenFromCookie = req.cookies?.token;
@@ -12,7 +14,7 @@ export const protect = async (req, res, next) => {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, JWT_SECRET);
     if (!decoded?.userId) {
       return res.status(401).json({ message: 'Invalid authentication token' });
     }

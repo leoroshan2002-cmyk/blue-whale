@@ -21,6 +21,8 @@ import OrderHistory from "./Components/AccountDetails/OrderHistory";
 
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import MenCollectionPage from "./Pages/MenCollectionPage";
+import MenProductsPage from "./Pages/MenProductsPage";
 
 import AdminDashboard from "./Pages/AdminDashboard";
 import ProductsPage from "./Pages/ProductsPage";
@@ -105,8 +107,11 @@ const App = () => {
               <Route path="/press" element={<Press />} />
               <Route path="/store-locator" element={<StoreLocator />} />
               <Route path="/products" element={<ProductsPage />} />
+              <Route path="/category/men" element={<MenCollectionPage />} />
+<Route path="/category/men/all" element={<MenProductsPage />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/product/:id" element={<ProductPage />} />
+              
             </Route>
 
             {/* ADMIN ROUTE */}

@@ -41,19 +41,43 @@ export const matchesCategory = (p, category) => {
   return actual === wanted || actual.includes(wanted);
 };
 
+
 export const filterByCollection = (products, collection) => {
   const wanted = norm(collection);
   if (!wanted) return products;
 
-  const exact = products.filter((p) => collectionFields(p).some((field) => norm(field) === wanted));
+  // First, use the product's actual collection fields.
+  const exact = products.filter((p) =>
+    collectionFields(p).some((field) => norm(field) === wanted)
+  );
+
   if (exact.length) return exact;
 
+  // Fallback: match the requested collection using product details,
+  // but only among sarees and never products explicitly marked as Combo.
   const terms = COLLECTION_ALIASES[wanted] || [wanted];
+
   return products.filter((p) => {
-    const text = norm(labelFields(p).filter(Boolean).join(" "));
-    return terms.some((term) => text.includes(term));
+    if (!isSareeProduct(p)) return false;
+
+    const categoryText = norm(p?.category);
+    const productText = norm(labelFields(p).filter(Boolean).join(" "));
+    const subcategoryText = norm(
+      [p?.subCategory, p?.subcategory, p?.collection, p?.type]
+        .filter(Boolean)
+        .join(" ")
+    );
+
+    if (/\b(combo|combos|combo set)\b/i.test(categoryText)) return false;
+
+    // Prefer collection-specific fields. Use broader text only as a fallback.
+    return terms.some((term) =>
+      subcategoryText.includes(norm(term)) ||
+      productText.includes(norm(term))
+    );
   });
 };
+
 
 // Related sarees: same collection first, then any other saree, never the current product.
 export const getRelatedSarees = (product, catalog, limit = 4) => {

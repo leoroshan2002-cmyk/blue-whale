@@ -12,7 +12,7 @@ import ErrorBoundary from "./Components/ErrorBoundary";
 
 import AdminProtectedRoute from "./Components/AdminProtectedRoute";
 
-import Wishlist from "./Components/Whislist";
+import Wishlist from "./Pages/Wishlist";
 import ScrollTop from "./Components/ScrollTop";
 import Account from "./Components/AccountDetails/Account";
 

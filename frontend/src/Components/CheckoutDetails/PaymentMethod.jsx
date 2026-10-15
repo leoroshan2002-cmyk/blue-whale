@@ -73,7 +73,7 @@ export default function PaymentMethod({ selectedMethodValue, onSelectMethod }) {
         >
             <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2 sm:gap-3">
-                    <h2 className="text-2xl font-semibold sm:text-3xl">Payment Method</h2>
+                    <h2 className="font-serif text-3xl font-medium tracking-tight text-[#102944]">Payment Method</h2>
                     <CheckCircle2 size={26} className="text-green-600 fill-green-600" />
                 </div>
 

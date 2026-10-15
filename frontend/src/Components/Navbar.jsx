@@ -11,7 +11,7 @@ const navItems = [
   { name: "Home", path: "/", end: true },
   { name: "Men", path: "/category/men" },
   { name: "Women", path: "/category/women" },
-  { name: "Combo", path: "/products" },
+  { name: "Combo", path: "/category/combo" },
 ];
 
 export default function Navbar() {

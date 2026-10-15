@@ -134,7 +134,7 @@ export default function AddressSection() {
 
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
 
-          <h2 className="text-2xl font-semibold sm:text-3xl">
+          <h2 className="font-serif text-3xl font-medium tracking-tight text-[#102944]">
              Shipping Address
           </h2>
 
@@ -180,7 +180,7 @@ export default function AddressSection() {
 
                 <div>
 
-                  <h3 className="text-xl font-semibold sm:text-2xl">
+                  <h3 className="font-serif text-3xl font-medium tracking-tight text-[#102944]">
                     Home Address
                   </h3>
 

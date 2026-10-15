@@ -8,8 +8,7 @@ import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
 import ProductCard from "../Components/ProductCard";
 import { fetchProducts } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
-import HaierahStandard from "../Components/HaierahStandard";
-import Footer from "../Components/Footer";
+import HomeFooter from "../Components/home/HomeFooter";
 import "./saree-shop.css";
 import heroImage from "../assets/home/reference/gallery-purple.png";
 import { filterByCollection, isSareeProduct, matchesCategory } from "../utils/sareeFilters";
@@ -30,7 +29,9 @@ export default function ProductsPage() {
   const { addToCart } = useCart();
   const { toggleWishlist } = useWishlist();
   const { requireAuthAction } = useRequireAuthAction();
-
+  console.log("Products page URL:", location.pathname + location.search);
+  console.log("Selected category:", categoryFilter);
+  console.log("Selected subcategory:", subcategoryFilter);
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -100,6 +101,42 @@ export default function ProductsPage() {
         </div>
       </div>
     </section>
-    <HaierahStandard/><Footer/>
+    {/* CUSTOMER BENEFITS */}
+          <section className="bw-benefits">
+            <div>
+              <strong>♧</strong>
+              <span>
+                Free Shipping
+                <small>For Limited orders</small>
+              </span>
+            </div>
+    
+            <div>
+              <strong>♢</strong>
+              <span>
+                Secure Payments
+                <small>100% safe &amp; encrypted</small>
+              </span>
+            </div>
+    
+            <div>
+              <strong>↻</strong>
+              <span>
+                Easy Returns
+                <small>Hassle-free process</small>
+              </span>
+            </div>
+    
+            <div>
+              <strong>♧</strong>
+              <span>
+                Customer Support
+                <small>We're here to help</small>
+              </span>
+            </div>
+          </section>
+    
+          {/* FOOTER */}
+          <HomeFooter />
   </main>;
 }

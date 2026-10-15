@@ -24,13 +24,13 @@ export default function LoginSection() {
 
         <div className="flex min-w-0 items-center gap-2 sm:gap-3">
 
-          <h2 className="text-2xl font-semibold sm:text-3xl">
+          <h2 className="font-serif text-3xl font-medium tracking-tight text-[#102944]">
              Account Details
           </h2>
 
           <CheckCircle2
             size={28}
-            className="text-green-600 fill-green-600"
+            className="text-green-600 fill-red-600"
           />
 
         </div>
@@ -41,7 +41,7 @@ export default function LoginSection() {
 
       {/* User */}
 
-      <p className="mt-4 break-words text-base text-gray-600 sm:text-xl">
+      <p className="font-serif text-3xl font-medium tracking-tight text-[#102944]">
         Logged in as
         <span className="ml-1 font-medium text-black sm:ml-2">
           {displayName} ({displayEmail})

@@ -451,7 +451,7 @@ export default function HomePage() {
           <strong>♧</strong>
           <span>
             Free Shipping
-            <small>On all orders</small>
+            <small>For Limited orders</small>
           </span>
         </div>
 

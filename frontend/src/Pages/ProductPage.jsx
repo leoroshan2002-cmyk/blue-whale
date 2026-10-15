@@ -89,5 +89,6 @@ export default function ProductPage() {
       </motion.div>
     </section>
     {related.length>0&&<section className="bw-related"><div className="bw-related-heading"><div><p className="bw-eyebrow bw-eyebrow-dark">THE ART OF THE DRAPE</p><h2>You may also love</h2></div><Link to={categoryPath}>View collection ↗</Link></div><div className="bw-related-grid">{related.map((item)=><ProductCard key={item.id||item._id} product={item} showButtons={false}/>)}</div></section>}
+   <HomeFooter />
   </main>;
 }

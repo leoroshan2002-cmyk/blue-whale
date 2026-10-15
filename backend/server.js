@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser";
 import "dotenv/config";
 import cors from "cors";
 import connectDB from "./src/config/db.js";
+import seedDefaultAdmin from "./src/config/defaultAdmin.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
@@ -21,6 +22,7 @@ const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
 
 await connectDB();
+await seedDefaultAdmin();
 
 const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 
@@ -70,7 +72,7 @@ app.use("/api/campaigns", campaignRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/contact", contactRoutes);
 
-const DEFAULT_PORT = Number(process.env.PORT || 5001);
+const DEFAULT_PORT = Number(process.env.PORT || 5000);
 const MAX_PORT_ATTEMPTS = 10;
 
 const startServer = (port, attempt = 1) => {

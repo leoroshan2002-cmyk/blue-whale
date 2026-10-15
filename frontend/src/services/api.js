@@ -6,11 +6,6 @@ const normalizedBaseApiUrl = rawBaseApiUrl.replace(/\/$/, '');
 
 const apiBaseUrl = (() => {
   if (!normalizedBaseApiUrl) {
-    if (import.meta.env.MODE !== 'production') {
-      console.warn(
-        'No VITE_API_URL configured. API calls will use relative paths under the current origin.'
-      );
-    }
     return '';
   }
   if (/^https?:\/\//i.test(normalizedBaseApiUrl)) return normalizedBaseApiUrl;

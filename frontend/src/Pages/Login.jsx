@@ -7,8 +7,8 @@ import { consumePendingAuthAction } from "../utils/authActionUtils";
 import { renderGoogleButton } from "../utils/googleAuth";
 import { buildApiUrl } from "../services/api";
 import { motion } from "framer-motion";
-import loginImage from "../assets/login.jpg";
-import Logotransparent from "../assets/HaierahLogoTransparent.png";
+import loginImage from "../assets/HomeHero.png";
+import BlueWhaleLogo from "../assets/BlueWhaleLogoTransparent.png";
 export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -135,7 +135,7 @@ export default function Login() {
   };
 
   return (
-  <div className="min-h-[100dvh] grid lg:grid-cols-2 bg-gradient-to-r from-black via-gray-900 to-black relative">
+  <div className="relative grid min-h-[100dvh] bg-[#f6f4ef] lg:grid-cols-2">
         
       
       {/* TOP RIGHT */}
@@ -154,50 +154,53 @@ export default function Login() {
       </div> */}
 
       {/* LEFT SIDE IMAGE */}
-      <div className="relative hidden lg:block">
-        <div className="absolute top-8 left-8 z-20">
-           <img src={Logotransparent} alt="HAIERAH Logo" className="h-16 w-auto object-contain"/>
+      <div className="relative hidden min-h-[100dvh] overflow-hidden lg:block">
+        <div className="absolute left-10 top-10 z-20 rounded-2xl bg-white/95 px-4 py-2 shadow-lg">
+           <img src={BlueWhaleLogo} alt="Blue Whale" className="h-14 w-auto object-contain"/>
         </div>
         <img
           src={loginImage}
-          alt="HAIERAH Fashion"
-          className="w-full h-screen object-cover"
+          alt="Blue Whale traditional saree collection"
+          className="h-full min-h-[100dvh] w-full object-cover object-center"
         />
-        <div className="absolute inset-0 bg-black/20"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-[#071d35]/85 via-[#071d35]/10 to-[#071d35]/15"></div>
 
-        <div className="absolute bottom-16 left-12 text-white">
-          <p className="uppercase tracking-[6px] text-sm">
-            NEW SEASON
+        <div className="absolute bottom-16 left-12 max-w-xl text-white">
+          <p className="text-sm uppercase tracking-[0.35em] text-[#e7c984]">
+            BLUE WHALE · TRADITIONAL WEAR
           </p>
 
-          <h1 className="font-serif text-6xl leading-tight mt-5">
-            Luxury
+          <h1 className="mt-5 font-serif text-6xl leading-tight">
+            Tradition,
             <br />
-            Redefined.
+            beautifully worn.
           </h1>
 
-          <p className="mt-5 text-lg max-w-sm">
-            Discover timeless fashion designed for modern elegance.
+          <p className="mt-5 max-w-sm text-lg text-white/85">
+            Sarees for her. Dhotis for him. Discover pieces made for every celebration.
           </p>
         </div>
       </div>
 
       {/* RIGHT SIDE FORM */}
-      <div className="flex min-w-0 items-center justify-center px-4 py-6 sm:px-8 sm:py-10 bg-white">
+      <div className="flex min-w-0 items-center justify-center px-4 py-8 sm:px-8 sm:py-10">
 
         <motion.form
           initial={{ opacity: 0, x: 50 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.8 }}
           onSubmit={handleSubmit}
-          className="w-full max-w-md rounded-2xl sm:rounded-3xl border border-white/30 bg-white/70 p-6 shadow-2xl backdrop-blur-2xl sm:p-10 md:p-12"
+          className="w-full max-w-md rounded-2xl border border-[#d9e0e8] bg-white p-6 shadow-[0_24px_70px_rgba(7,29,53,0.12)] sm:rounded-3xl sm:p-10 md:p-12"
          >
-          <h1 className="text-center font-serif text-4xl text-black sm:text-5xl">
-            HAIERAH
-          </h1>
+          <div className="mb-5 flex justify-center">
+            <img src={BlueWhaleLogo} alt="Blue Whale" className="h-16 w-auto object-contain" />
+          </div>
 
-          <p className="mt-3 mb-8 text-center text-xs uppercase tracking-[2px] text-gray-500 sm:mb-10 sm:text-base sm:tracking-[4px]">
-            Welcome Back
+          <h1 className="text-center font-serif text-3xl text-[#092440] sm:text-4xl">
+            Welcome back
+          </h1>
+          <p className="mb-8 mt-3 text-center text-xs uppercase tracking-[0.22em] text-[#6b7785] sm:mb-10 sm:text-sm">
+            Sign in to your Blue Whale account
           </p>
 
           {/* EMAIL */}
@@ -205,7 +208,7 @@ export default function Login() {
             type="email"
             autoComplete="email"
             placeholder="Email"
-            className="mb-4 w-full rounded-xl border border-gray-300 px-4 py-3.5 outline-none focus:ring-2 focus:ring-black sm:mb-5 sm:px-5 sm:py-4"
+            className="mb-4 w-full rounded-xl border border-[#cbd4df] px-4 py-3.5 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20 sm:mb-5 sm:px-5 sm:py-4"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -216,7 +219,7 @@ export default function Login() {
             type="password"
             autoComplete="current-password"
             placeholder="Password"
-            className="mb-3 w-full rounded-xl border border-gray-300 px-4 py-3.5 outline-none focus:ring-2 focus:ring-black sm:px-5 sm:py-4"
+            className="mb-3 w-full rounded-xl border border-[#cbd4df] px-4 py-3.5 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20 sm:px-5 sm:py-4"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -226,7 +229,7 @@ export default function Login() {
           <div className="text-right mb-6">
             <Link
               to="/forgot-password"
-              className="text-sm underline text-gray-600 hover:text-black"
+              className="text-sm text-[#174c79] underline underline-offset-4 hover:text-[#092440]"
             >
               Forgot Password?
             </Link>
@@ -235,7 +238,7 @@ export default function Login() {
           {/* SIGN IN BUTTON */}
           <button
             type="submit"
-            className="w-full bg-black text-white py-4 rounded-xl uppercase tracking-widest hover:bg-gray-800 transition"
+            className="w-full rounded-xl bg-[#092440] py-4 uppercase tracking-[0.16em] text-white transition hover:bg-[#123d63]"
           >
             Sign In
           </button>
@@ -247,11 +250,11 @@ export default function Login() {
          
             
           {/* REGISTER LINK */}
-          <p className="mt-6 text-center text-sm text-gray-600 sm:mt-8 sm:text-base">
+          <p className="mt-6 text-center text-sm text-[#687482] sm:mt-8 sm:text-base">
             Don't have an account?
             <Link
               to="/register"
-              className="ml-1 font-semibold text-black hover:underline sm:ml-2"
+              className="ml-1 font-semibold text-[#174c79] hover:underline sm:ml-2"
             >
               Register
             </Link>

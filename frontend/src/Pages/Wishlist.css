@@ -1,0 +1,763 @@
+
+
+
+.bw-wishlist {
+  --bw-navy: #082c45;
+  --bw-gold: #c99a53;
+  --bw-cream: #f8f0e2;
+  --bw-ink: #173148;
+
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
+  color: var(--bw-ink);
+  font-family: Georgia, "Times New Roman", serif;
+  background-color: var(--bw-cream);
+
+  /* One common background image for the entire page */
+  background-image:
+    linear-gradient(
+      rgba(250, 244, 232, 0.32),
+      rgba(250, 244, 232, 0.32)
+    ),
+    url("/wishlist%20background.png");
+
+  background-position: center top;
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+  box-sizing: border-box;
+}
+
+.bw-wishlist *,
+.bw-wishlist *::before,
+.bw-wishlist *::after {
+  box-sizing: border-box;
+}
+
+.bw-wishlist button {
+  font: inherit;
+  cursor: pointer;
+}
+
+/* =========================================
+   HERO
+   Transparent over the common page background
+========================================= */
+
+.bw-wishlist-hero {
+  width: 100%;
+  min-height: 260px;
+  margin: 0;
+  padding: 40px clamp(24px, 7%, 100px);
+  display: flex;
+  align-items: center;
+  color: #fffaf0;
+  background: transparent;
+}
+
+.bw-wishlist-hero-content {
+  width: 100%;
+  max-width: 680px;
+}
+
+.bw-eyebrow {
+  font-size: 13px;
+  letter-spacing: 5px;
+  margin: 0 0 12px;
+}
+
+.bw-wishlist-hero h1 {
+  font-size: clamp(42px, 5vw, 66px);
+  line-height: 1.05;
+  margin: 0;
+  font-weight: 500;
+}
+
+.bw-hero-subtitle {
+  font-size: 18px;
+  font-style: italic;
+  margin: 14px 0 20px;
+}
+
+.bw-gold-divider,
+.bw-aside-divider {
+  display: block;
+  width: 150px;
+  height: 1px;
+  background: var(--bw-gold);
+  position: relative;
+}
+
+.bw-gold-divider::after,
+.bw-aside-divider::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  background: var(--bw-gold);
+  transform: rotate(45deg);
+}
+
+/* =========================================
+   MAIN WISHLIST LAYOUT
+   Uses the same common background
+========================================= */
+
+.bw-wishlist-layout {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 28px clamp(18px, 4%, 48px);
+
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  align-items: start;
+  gap: 26px;
+
+  background: transparent;
+}
+
+.bw-wishlist-aside {
+  padding: 55px 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bw-aside-heading {
+  color: #a7783e;
+  font-size: 14px;
+  letter-spacing: 4px;
+  line-height: 1.9;
+}
+
+.bw-aside-divider {
+  width: 90px;
+  margin: 22px 0;
+}
+
+.bw-aside-copy {
+  color: #997344;
+  font-style: italic;
+  font-size: 17px;
+  line-height: 1.6;
+  max-width: 160px;
+}
+
+.bw-aside-flower {
+  color: #cba66d;
+  width: 100px;
+  height: 130px;
+  margin-top: 18px;
+  stroke-width: 0.8;
+}
+
+.bw-wishlist-content {
+  min-width: 0;
+}
+
+.bw-wishlist-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 15px;
+  margin: 5px 0 24px;
+  flex-wrap: wrap;
+}
+
+.bw-filter-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bw-filter {
+  border: 1px solid #e2d5c0;
+  background: rgba(255, 252, 245, 0.55);
+  border-radius: 30px;
+  padding: 9px 19px;
+  color: var(--bw-ink);
+  font-size: 13px;
+}
+
+.bw-filter.active {
+  background: var(--bw-navy);
+  color: white;
+  border-color: var(--bw-navy);
+}
+
+.bw-clear-button {
+  border: 0;
+  background: transparent;
+  color: #a76d34;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: underline;
+}
+
+.bw-clear-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* =========================================
+   PRODUCT GRID
+========================================= */
+
+.bw-wishlist-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.bw-product-card {
+  position: relative;
+  min-width: 0;
+  background: rgba(255, 252, 245, 0.95);
+  border: 1px solid #e6dac8;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 12px rgba(55, 36, 15, 0.06);
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.bw-product-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 25px rgba(55, 36, 15, 0.12);
+}
+
+.bw-product-image-wrap {
+  position: relative;
+  height: 205px;
+  cursor: pointer;
+  overflow: hidden;
+  background: #e7d8c0;
+}
+
+.bw-product-image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  transition: transform 0.6s ease;
+}
+
+.bw-product-card:hover .bw-product-image {
+  transform: scale(1.05);
+}
+
+.bw-product-type {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background: #c89b53;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+}
+
+.bw-heart-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: rgba(38, 22, 12, 0.2);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+
+.bw-product-info {
+  padding: 12px 14px 14px;
+}
+
+.bw-product-info h2 {
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0 0 5px;
+}
+
+.bw-product-description {
+  font-size: 12px;
+  color: #756b5e;
+  margin: 0 0 10px;
+  min-height: 16px;
+}
+
+.bw-product-price {
+  font-size: 17px;
+  font-weight: bold;
+  margin: 10px 0;
+}
+
+.bw-product-meta {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 12px 0;
+}
+
+.bw-product-meta span {
+  font-family: Arial, sans-serif;
+  font-size: 10px;
+  background: #f4ecdf;
+  color: #746653;
+  padding: 6px 9px;
+  border-radius: 20px;
+}
+
+.bw-product-actions {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+}
+
+.bw-add-cart {
+  flex: 1;
+  min-height: 39px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bw-navy);
+  color: white;
+  border: 1px solid var(--bw-navy);
+  border-radius: 5px;
+  font-size: 13px;
+  padding: 9px;
+  transition: background 0.2s ease;
+}
+
+.bw-add-cart:hover {
+  background: #124665;
+}
+
+.bw-remove-button {
+  width: 39px;
+  min-width: 39px;
+  display: grid;
+  place-items: center;
+  color: #a76d34;
+  border: 1px solid #c99c67;
+  background: transparent;
+  border-radius: 5px;
+}
+
+/* =========================================
+   EMPTY WISHLIST
+========================================= */
+
+.bw-empty-wishlist {
+  width: 100%;
+  min-height: 285px;
+  padding: 40px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e5d8c5;
+  background: rgba(255, 252, 245, 0.92);
+}
+
+.bw-empty-wishlist h2 {
+  font-weight: 500;
+  margin: 12px 0 6px;
+}
+
+.bw-empty-wishlist p {
+  margin: 0;
+  line-height: 1.7;
+}
+
+.bw-empty-wishlist .bw-add-cart {
+  display: inline-flex;
+  width: auto;
+  margin-top: 15px;
+  padding: 12px 18px;
+}
+
+/* =========================================
+   CONTINUE SHOPPING BANNER
+   Uses wishlist bottom.png only
+========================================= */
+
+.bw-wishlist-cta {
+  width: 100%;
+  min-height: 112px;
+  margin-top: 22px;
+  padding: 22px 28px;
+  border: 1px solid #9e713a;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  color: #fff8ec;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(36, 20, 10, 0.88),
+      rgba(36, 20, 10, 0.3)
+    ),
+    url("/wishlist%20bottom.png") center 55% / cover no-repeat;
+}
+
+.bw-cta-flower {
+  color: #d7a64f;
+  width: 56px;
+  height: 56px;
+  stroke-width: 1;
+  flex-shrink: 0;
+}
+
+.bw-cta-text {
+  flex: 1;
+  min-width: 0;
+}
+
+.bw-cta-text h2 {
+  font-size: 21px;
+  font-weight: 500;
+  margin: 0 0 5px;
+}
+
+.bw-cta-text p {
+  font-size: 14px;
+  font-style: italic;
+  margin: 0;
+}
+
+.bw-continue-button {
+  border: 1px solid #d3a353;
+  color: white;
+  background: rgba(31, 20, 12, 0.4);
+  border-radius: 5px;
+  padding: 12px 17px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.bw-continue-button:hover {
+  background: #a4773e;
+}
+
+/* =========================================
+   BENEFITS FOOTER
+========================================= */
+
+.bw-wishlist-benefits {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+  padding: 28px 7%;
+  background: var(--bw-navy);
+  color: white;
+}
+
+.bw-wishlist-benefits > div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-right: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.bw-wishlist-benefits > div:last-child {
+  border: 0;
+}
+
+.bw-benefit-icon {
+  font-size: 29px;
+  color: #e6ae4d;
+}
+
+.bw-wishlist-benefits h3 {
+  font-size: 14px;
+  font-weight: 500;
+  margin: 0 0 6px;
+}
+
+.bw-wishlist-benefits p {
+  font-size: 11px;
+  margin: 0;
+  color: #d5dce2;
+}
+
+/* =========================================
+   TABLET
+========================================= */
+
+@media (max-width: 1050px) {
+  .bw-wishlist-layout {
+    grid-template-columns: 145px minmax(0, 1fr);
+    gap: 15px;
+    padding: 24px 3%;
+  }
+
+  .bw-wishlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .bw-product-image-wrap {
+    height: 230px;
+  }
+}
+
+/* =========================================
+   MOBILE
+========================================= */
+
+@media (max-width: 650px) {
+  .bw-wishlist-hero {
+    min-height: 220px;
+    padding: 30px 6%;
+  }
+
+  .bw-eyebrow {
+    letter-spacing: 3px;
+    font-size: 11px;
+  }
+
+  .bw-wishlist-hero h1 {
+    font-size: clamp(36px, 10vw, 48px);
+  }
+
+  .bw-hero-subtitle {
+    font-size: 15px;
+  }
+
+  .bw-wishlist-layout {
+    display: block;
+    padding: 22px 14px;
+  }
+
+  .bw-wishlist-aside {
+    display: none;
+  }
+
+  .bw-wishlist-toolbar {
+    align-items: flex-start;
+    gap: 14px;
+  }
+
+  .bw-filter {
+    padding: 8px 12px;
+  }
+
+  .bw-wishlist-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .bw-product-image-wrap {
+    height: 175px;
+  }
+
+  .bw-product-info {
+    padding: 10px;
+  }
+
+  .bw-product-info h2 {
+    font-size: 14px;
+  }
+
+  .bw-product-description {
+    font-size: 11px;
+  }
+
+  .bw-product-meta span {
+    font-size: 9px;
+    padding: 5px 7px;
+  }
+
+  .bw-product-actions {
+    gap: 6px;
+  }
+
+  .bw-add-cart {
+    font-size: 11px;
+    gap: 4px;
+    padding: 8px 5px;
+  }
+
+  .bw-remove-button {
+    width: 32px;
+    min-width: 32px;
+  }
+
+  .bw-wishlist-cta {
+    padding: 18px 14px;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .bw-cta-flower {
+    width: 38px;
+  }
+
+  .bw-cta-text h2 {
+    font-size: 18px;
+  }
+
+  .bw-cta-text p {
+    font-size: 12px;
+  }
+
+  .bw-continue-button {
+    margin-left: auto;
+    white-space: normal;
+  }
+
+  .bw-wishlist-benefits {
+    grid-template-columns: 1fr;
+    gap: 18px;
+    padding: 25px;
+  }
+
+  .bw-wishlist-benefits > div {
+    justify-content: flex-start;
+    border-right: 0;
+  }
+}
+
+/* Small phones */
+
+@media (max-width: 380px) {
+  .bw-wishlist-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bw-product-image-wrap {
+    height: 240px;
+  }
+}
+
+/* Main decorative background: display the image once */
+.bw-wishlist {
+  background-color: #f8f0e2;
+  background-image: url("/wishlist%20background.png");
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 100% auto;
+}
+
+/* Keep the original image visible behind the hero */
+.bw-wishlist .bw-wishlist-hero {
+  background: transparent;
+  color: #4a3020;
+  min-height: 260px;
+}
+
+/* The main content shares the same page background */
+.bw-wishlist .bw-wishlist-layout {
+  background: transparent;
+}
+
+/* Keep the empty panel readable */
+.bw-wishlist .bw-empty-wishlist {
+  background: rgba(255, 252, 245, 0.92);
+}
+
+/* Bottom banner: use your supplied image */
+.bw-wishlist .bw-wishlist-cta {
+  background-image: url("/wishlist%20bottom.png");
+  background-position: center;
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+  min-height: 180px;
+  position: relative;
+}
+
+/* The banner image already contains its text and flower.
+   Hide duplicate HTML elements. */
+.bw-wishlist .bw-wishlist-cta .bw-cta-flower,
+.bw-wishlist .bw-wishlist-cta .bw-cta-text {
+  visibility: hidden;
+}
+
+/* Keep the real button clickable over the image button */
+.bw-wishlist .bw-wishlist-cta .bw-continue-button {
+  position: absolute;
+  right: 5%;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border-color: transparent;
+  color: transparent;
+  width: 24%;
+  height: 45%;
+  font-size: 0;
+}
+
+/* Mobile adjustment */
+@media (max-width: 650px) {
+  .bw-wishlist {
+    background-size: auto 650px;
+    background-position: center top;
+  }
+
+  .bw-wishlist .bw-wishlist-hero {
+    min-height: 220px;
+  }
+
+  .bw-wishlist .bw-wishlist-cta {
+    min-height: 110px;
+  }
+}
+/* FIX: SHOW THE WISHLIST BACKGROUND IMAGE */
+
+.bw-wishlist {
+  position: relative;
+  isolation: isolate;
+  background-color: #f8f0e2 !important;
+  background-image: url("/wishlist%20background.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center top !important;
+  background-size: 100% auto !important;
+}
+
+/* Hero must remain transparent */
+.bw-wishlist .bw-wishlist-hero {
+  background: transparent !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Main content must not cover the background */
+.bw-wishlist .bw-wishlist-layout {
+  background: transparent !important;
+  position: relative;
+  z-index: 1;
+}
+
+/* Keep the empty wishlist card readable */
+.bw-wishlist .bw-empty-wishlist {
+  background: rgba(255, 252, 245, 0.80) !important;
+}
+
+/* Bottom banner uses its own image */
+.bw-wishlist .bw-wishlist-cta {
+  background-image: url("/wishlist%20bottom.png") !important;
+  background-repeat: no-repeat !important;
+  background-position: center !important;
+  background-size: 100% 100% !important;
+}
+
+/* Mobile background positioning */
+@media (max-width: 650px) {
+  .bw-wishlist {
+    background-size: auto 700px !important;
+    background-position: center top !important;
+  }
+}

@@ -5,10 +5,8 @@ import { useAuth } from "../Context/AuthContext";
 import { renderGoogleButton } from "../utils/googleAuth";
 import { buildApiUrl } from "../services/api";
 
-import registerImage from "../assets/register.jpg";
-import Logotransparent from "../assets/HaierahLogoTransparent.png";
-
-import PageBack from "../Components/CommonDetails/PageBack";
+import registerImage from "../assets/HomeHero.png";
+import BlueWhaleLogo from "../assets/BlueWhaleLogoTransparent.png";
 export default function Register() {
   const navigate = useNavigate();
   const { user, register, updateUser, isAuthReady } = useAuth();
@@ -194,40 +192,40 @@ export default function Register() {
       </div> */}
 
       {/* MAIN GRID */}
-      <div className="min-h-screen grid lg:grid-cols-2 bg-[#F8F7F5]">
+      <div className="grid min-h-screen bg-[#f6f4ef] lg:grid-cols-2">
            
         {/* LEFT SIDE */}
-        <div className="relative hidden lg:block">
+        <div className="relative hidden min-h-screen overflow-hidden lg:block">
             
-           <div className="absolute top-8 left-8 z-20">
-             <img src={Logotransparent} alt="HAIERAH Logo" className="h-16 w-auto object-contain" />
+           <div className="absolute left-10 top-10 z-20 rounded-2xl bg-white/95 px-4 py-2 shadow-lg">
+             <img src={BlueWhaleLogo} alt="Blue Whale" className="h-14 w-auto object-contain" />
             </div>
           <img
             src={registerImage}
-            alt="HAIERAH Register"
-            className="w-full h-full object-cover"
+            alt="Blue Whale traditional saree collection"
+            className="h-full min-h-screen w-full object-cover object-center"
           />
-          <div className="absolute inset-0 bg-black/20"></div>
+          <div className="absolute inset-0 bg-gradient-to-t from-[#071d35]/85 via-[#071d35]/10 to-[#071d35]/15"></div>
 
-          <div className="absolute bottom-16 left-12 text-white">
-            <p className="uppercase tracking-[6px] text-sm">
-              JOIN HAIERAH
+          <div className="absolute bottom-16 left-12 max-w-xl text-white">
+            <p className="text-sm uppercase tracking-[0.35em] text-[#e7c984]">
+              BLUE WHALE · MADE FOR YOUR MOMENTS
             </p>
 
-            <h1 className="font-serif text-6xl leading-tight mt-5">
-              Create
+            <h1 className="mt-5 font-serif text-6xl leading-tight">
+              Celebrate
               <br />
-              Your Style.
+              every tradition.
             </h1>
 
-            <p className="mt-5 text-lg max-w-sm">
-              Join HAIERAH and discover premium fashion made for every occasion.
+            <p className="mt-5 max-w-sm text-lg text-white/85">
+              Create your account and find timeless styles for every celebration.
             </p>
           </div>
         </div>
 
         {/* RIGHT SIDE */}
-        <div className="flex items-center justify-center px-8 py-10">
+        <div className="flex min-w-0 items-center justify-center px-4 py-8 sm:px-8 sm:py-10">
             
       
           <motion.form
@@ -235,15 +233,18 @@ export default function Register() {
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8 }}
             onSubmit={handleSubmit}
-            className="bg-white rounded-3xl shadow-2xl p-12 w-full max-w-md"
+            className="w-full max-w-md rounded-2xl border border-[#d9e0e8] bg-white p-6 shadow-[0_24px_70px_rgba(7,29,53,0.12)] sm:rounded-3xl sm:p-10 md:p-12"
           >
 
-            <h1 className="text-5xl font-serif text-center text-black">
-              HAIERAH
-            </h1>
+            <div className="mb-5 flex justify-center">
+              <img src={BlueWhaleLogo} alt="Blue Whale" className="h-16 w-auto object-contain" />
+            </div>
 
-            <p className="text-center text-gray-500 uppercase tracking-[4px] mt-3 mb-10">
-              Create Your Account
+            <h1 className="text-center font-serif text-3xl text-[#092440] sm:text-4xl">
+              Join Blue Whale
+            </h1>
+            <p className="mb-8 mt-3 text-center text-xs uppercase tracking-[0.2em] text-[#6b7785] sm:mb-10 sm:text-sm">
+              Create your account
             </p>
 
             {/* FORM FIELDS */}
@@ -251,7 +252,7 @@ export default function Register() {
               type="text"
               autoComplete="name"
               placeholder="Full Name"
-              className="w-full border border-gray-300 rounded-xl px-5 py-4 mb-5 outline-none focus:ring-2 focus:ring-black"
+              className="mb-5 w-full rounded-xl border border-[#cbd4df] px-5 py-4 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
@@ -262,14 +263,14 @@ export default function Register() {
               type="email"
               autoComplete="email"
               placeholder="Email"
-              className="w-full border border-gray-300 rounded-xl px-5 py-4 mb-5 outline-none focus:ring-2 focus:ring-black"
+              className="mb-5 w-full rounded-xl border border-[#cbd4df] px-5 py-4 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
               readOnly={googleSignedIn}
             />
             {googleSignedIn && (
-              <p className="text-sm text-green-600 mb-5">
+              <p className="mb-5 text-sm text-[#16734b]">
                 Google account loaded. Complete registration by entering a new password and confirming it.
               </p>
             )}
@@ -278,7 +279,7 @@ export default function Register() {
               type="password"
               autoComplete="new-password"
               placeholder="Password"
-              className="w-full border border-gray-300 rounded-xl px-5 py-4 mb-5 outline-none focus:ring-2 focus:ring-black"
+              className="mb-5 w-full rounded-xl border border-[#cbd4df] px-5 py-4 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -288,7 +289,7 @@ export default function Register() {
               type="password"
               autoComplete="new-password"
               placeholder="Confirm Password"
-              className="w-full border border-gray-300 rounded-xl px-5 py-4 mb-6 outline-none focus:ring-2 focus:ring-black"
+              className="mb-6 w-full rounded-xl border border-[#cbd4df] px-5 py-4 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               required
@@ -296,27 +297,27 @@ export default function Register() {
 
             {verificationStage && (
               <>
-                <p className="text-sm text-gray-700 mb-4">{verificationMessage}</p>
+                <p className="mb-4 text-sm text-[#536171]">{verificationMessage}</p>
                 <input
                   type="text"
                   inputMode="numeric"
                   maxLength={6}
                   placeholder="Enter verification code"
-                  className="w-full border border-gray-300 rounded-xl px-5 py-4 mb-5 outline-none focus:ring-2 focus:ring-black"
+                  className="mb-5 w-full rounded-xl border border-[#cbd4df] px-5 py-4 outline-none transition focus:border-[#0c4b82] focus:ring-2 focus:ring-[#0c4b82]/20"
                   value={verificationCode}
                   onChange={(e) => setVerificationCode(e.target.value)}
                 />
                 <button
                   type="button"
                   onClick={handleVerifyCode}
-                  className="w-full bg-blue-600 text-white py-4 rounded-xl uppercase tracking-widest hover:bg-blue-700 transition mb-4"
+                  className="mb-4 w-full rounded-xl bg-[#092440] py-4 uppercase tracking-[0.16em] text-white transition hover:bg-[#123d63]"
                 >
                   Verify Email
                 </button>
                 <button
                   type="button"
                   onClick={handleResendCode}
-                  className="w-full bg-gray-100 text-black py-4 rounded-xl uppercase tracking-widest hover:bg-gray-200 transition"
+                  className="w-full rounded-xl bg-[#eaf0f5] py-4 uppercase tracking-[0.16em] text-[#092440] transition hover:bg-[#dce6ef]"
                 >
                   Resend Code
                 </button>
@@ -326,13 +327,13 @@ export default function Register() {
             {/* TERMS */}
             <div className="flex items-start gap-3 mb-6">
               <input type="checkbox" required className="mt-1" />
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-[#687482]">
                 I agree to the{" "}
-                <Link to="/terms" className="underline mx-1">
+                <Link to="/terms-of-service" className="mx-1 underline underline-offset-4">
                   Terms & Conditions
                 </Link>
                 and
-                <Link to="/privacy" className="underline ml-1">
+                <Link to="/privacy-policy" className="ml-1 underline underline-offset-4">
                   Privacy Policy
                 </Link>
               </p>
@@ -341,14 +342,14 @@ export default function Register() {
             {/* BUTTON */}
             <button
               type="submit"
-              className="w-full bg-black text-white py-4 rounded-xl uppercase tracking-widest hover:bg-gray-800 transition"
+              className="w-full rounded-xl bg-[#092440] py-4 uppercase tracking-[0.16em] text-white transition hover:bg-[#123d63]"
             >
               {googleAccountLoaded ? 'Finish Registration' : 'Create Account'}
             </button>
             <br />
 
             {googleAccountLoaded ? (
-              <div className="mt-4 text-center text-sm text-gray-600">
+              <div className="mt-4 text-center text-sm text-[#687482]">
                 Google account loaded. Enter a new password to finish registration.
               </div>
             ) : (
@@ -357,9 +358,9 @@ export default function Register() {
               </div>
             )}
 
-            <p className="text-center mt-2 text-gray-600">
+            <p className="mt-2 text-center text-[#687482]">
               Already have an account?
-              <Link to="/login" className="ml-2 font-semibold hover:underline">
+              <Link to="/login" className="ml-2 font-semibold text-[#174c79] hover:underline">
                 Sign In
               </Link>
             </p>

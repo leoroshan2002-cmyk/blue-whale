@@ -45,6 +45,11 @@ const orderSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      index: true,
+    },
     customerName: {
       type: String,
       required: true,
@@ -71,6 +76,7 @@ const orderSchema = new mongoose.Schema(
     deliveryCost: { type: Number, min: 0, default: 0 },
     tax: { type: Number, min: 0, default: 0 },
     couponDiscount: { type: Number, min: 0, default: 0 },
+    couponCode: { type: String, default: '', trim: true, uppercase: true },
     paymentStatus: {
       type: String,
       default: 'Pending',

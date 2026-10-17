@@ -11,7 +11,7 @@ import RecommendationPage from "../Components/RecommendationPage";
 import PageBack from "../Components/CommonDetails/PageBack";
 
 export default function CartPage() {
-  const { cart, removeFromCart, updateQuantity, getTotalPrice } = useCart();
+  const { cart, isCartReady, cartError, removeFromCart, updateQuantity, getTotalPrice } = useCart();
   const { user, isAuthReady } = useAuth();
   const navigate = useNavigate();
 
@@ -65,6 +65,22 @@ export default function CartPage() {
 
     navigate("/checkout");
   };
+
+  if (!isCartReady) {
+    return (
+      <section className="flex min-h-[calc(100dvh-80px)] items-center justify-center bg-[#fbf5eb] px-4">
+        <p role="status" className="text-sm text-[#6b3019]">Loading your saved cart…</p>
+      </section>
+    );
+  }
+
+  if (cartError) {
+    return (
+      <section className="flex min-h-[calc(100dvh-80px)] items-center justify-center bg-[#fbf5eb] px-4">
+        <p role="alert" className="text-center text-red-700">{cartError}</p>
+      </section>
+    );
+  }
 
   if (cart.length === 0) {
     return (

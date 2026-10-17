@@ -3,6 +3,7 @@ import multer from "multer";
 import cookieParser from "cookie-parser";
 import "dotenv/config";
 import cors from "cors";
+import mongoose from "mongoose";
 import connectDB from "./src/config/db.js";
 import seedDefaultAdmin from "./src/config/defaultAdmin.js";
 import authRoutes from "./src/routes/authRoutes.js";
@@ -14,15 +15,13 @@ import paymentRoutes from "./src/routes/paymentRoutes.js";
 import campaignRoutes from "./src/routes/campaignRoutes.js";
 import categoryRoutes from "./src/routes/categoryRoutes.js";
 import contactRoutes from "./src/routes/contactRoutes.js";
+import publicCouponRoutes from "./src/routes/publicCouponRoutes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const app = express();
 const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
-
-await connectDB();
-await seedDefaultAdmin();
 
 const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 
@@ -61,6 +60,16 @@ app.get("/", (_req, res) => {
   res.json({ message: "HAIERAH backend is running" });
 });
 
+app.use("/api", (_req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    return res.status(503).json({
+      message: "Database is unavailable. Please try again shortly.",
+    });
+  }
+
+  return next();
+});
+
 // routes
 app.use("/api/auth", authRoutes);
 app.use("/api/products", productRoutes);
@@ -71,9 +80,11 @@ app.use("/api/admin", adminRoutes);
 app.use("/api/campaigns", campaignRoutes);
 app.use("/api/categories", categoryRoutes);
 app.use("/api/contact", contactRoutes);
+app.use("/api/coupons", publicCouponRoutes);
 
 const DEFAULT_PORT = Number(process.env.PORT || 5000);
 const MAX_PORT_ATTEMPTS = 10;
+const DB_RETRY_DELAY_MS = 5000;
 
 const startServer = (port, attempt = 1) => {
   const server = app.listen(port, () => {
@@ -100,3 +111,21 @@ const startServer = (port, attempt = 1) => {
 };
 
 startServer(DEFAULT_PORT);
+
+const initializeDatabase = async () => {
+  while (true) {
+    try {
+      await connectDB();
+      await seedDefaultAdmin();
+      return;
+    } catch (error) {
+      console.error(
+        `Database initialization failed. Retrying in ${DB_RETRY_DELAY_MS / 1000} seconds:`,
+        error?.message || error,
+      );
+      await new Promise((resolve) => setTimeout(resolve, DB_RETRY_DELAY_MS));
+    }
+  }
+};
+
+void initializeDatabase();

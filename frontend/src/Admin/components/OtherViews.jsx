@@ -367,7 +367,7 @@ export const CustomersView = ({ customers, onToggleStatus }) => {
   return (
     <div className="space-y-6 text-left animate-fade-in" id="customers-panel">
       <div className="py-2">
-        <h2 className="text-xl font-bold text-slate-900 dark:text-white">HAIERAH & Shopify Brand Members</h2>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white">BlueWhale & Shopify Brand Members</h2>
         <p className="text-xs text-slate-500 mt-1">Audit customer loyalty, gross spending totals, and manage active system privileges.</p>
       </div>
 

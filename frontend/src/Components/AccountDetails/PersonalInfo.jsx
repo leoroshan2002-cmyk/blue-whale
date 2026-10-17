@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Camera, Pencil, Check, X } from "lucide-react";
 import { useAuth } from "../../Context/AuthContext";
-import { buildApiUrl } from "../../services/api";
+import { apiClient } from "../../services/api";
 
 const defaultData = [
   { label: "First Name", key: "firstName", value: "" },
@@ -59,10 +59,8 @@ export default function PersonalInfo() {
 
       if (user?.id) {
         try {
-          const response = await fetch(buildApiUrl(`/api/users/${user.id}`), { credentials: 'include' });
-          const data = await response.json();
-
-          if (response.ok && data.customer) {
+          const { data } = await apiClient.get(`/api/users/${user.id}`);
+          if (data.customer) {
             const refreshedUser = {
               ...mergedUser,
               ...data.customer,
@@ -74,14 +72,14 @@ export default function PersonalInfo() {
             setDetails(mapUserToDetails(refreshedUser));
             setAvatarPreview(refreshedUser?.avatar || mergedUser?.avatar || "");
           }
-        } catch {
-          // Ignore and keep the locally available profile data visible.
+        } catch (requestError) {
+          setError(requestError?.response?.data?.message || "Unable to refresh your profile.");
         }
       }
     };
 
     syncProfile();
-  }, [user?.id]);
+  }, [user]);
 
   const handleAvatarChange = (event) => {
     const file = event.target.files?.[0] || null;
@@ -137,16 +135,7 @@ export default function PersonalInfo() {
         formData.append("avatar", avatarFile);
       }
 
-      const response = await fetch(buildApiUrl(`/api/users/${user.id}`), {
-        method: "PUT",
-        body: formData,
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Unable to update profile.");
-      }
+      const { data } = await apiClient.put(`/api/users/${user.id}`, formData);
 
       const updatedUser = {
         ...user,
@@ -163,7 +152,7 @@ export default function PersonalInfo() {
       setSuccess("Profile updated successfully.");
       setIsEditing(false);
     } catch (err) {
-      setError(err.message || "An unexpected error occurred.");
+      setError(err?.response?.data?.message || err.message || "An unexpected error occurred.");
     } finally {
       setLoading(false);
     }

@@ -1,21 +1,19 @@
 import { motion } from "framer-motion";
 import { useState } from "react";
-import { Lock, ShieldCheck, ChevronRight } from "lucide-react";
+import { Lock, ShieldCheck } from "lucide-react";
 import { useAuth } from "../../Context/AuthContext";
-import { buildApiUrl } from "../../services/api";
+import { apiClient } from "../../services/api";
 
 const cards = [
   {
     icon: Lock,
     title: "Password",
-    description: "Keep your account secure by updating your password regularly.",
-    button: "Change Password",
+    description: "Confirm your current password before choosing a new one.",
   },
   {
     icon: ShieldCheck,
     title: "Two-Factor Authentication",
-    description: "Add an extra layer of protection with two-factor authentication.",
-    button: "Enable 2FA",
+    description: "Two-factor authentication is not currently available for customer accounts.",
   },
 ];
 
@@ -26,49 +24,42 @@ export default function SecuritySection() {
     newPassword: "",
     confirmPassword: "",
   });
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState("");
 
   const handlePasswordChange = async (event) => {
     event.preventDefault();
 
     if (!passwordForm.newPassword || passwordForm.newPassword.length < 6) {
       setMessage("New password must be at least 6 characters long.");
+      setMessageType("error");
       return;
     }
 
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       setMessage("Passwords do not match.");
+      setMessageType("error");
       return;
     }
 
     if (!user?.id) {
       setMessage("Please log in before changing your password.");
+      setMessageType("error");
       return;
     }
 
     try {
-      const response = await fetch(buildApiUrl(`/api/users/${user.id}`), {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          password: passwordForm.newPassword,
-        }),
+      await apiClient.put("/api/users/me/password", {
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Unable to update password.");
-      }
-
       setMessage("Password updated successfully. Please use your new password on the next login.");
+      setMessageType("success");
       setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
     } catch (error) {
-      setMessage(error.message || "Unable to update password.");
+      setMessage(error?.response?.data?.message || error.message || "Unable to update password.");
+      setMessageType("error");
     }
   };
 
@@ -158,33 +149,16 @@ export default function SecuritySection() {
                     <div>
                       <p className="font-medium">Two-factor authentication</p>
                       <p className="mt-1 text-sm text-zinc-500">
-                        {twoFactorEnabled ? "Enabled for your account" : "Not enabled yet"}
+                        {card.description}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setTwoFactorEnabled((prev) => !prev)}
-                      className={`rounded-full px-4 py-2 text-sm font-medium ${
-                        twoFactorEnabled ? "bg-black text-white" : "bg-white text-zinc-700 border border-zinc-300"
-                      }`}
-                    >
-                      {twoFactorEnabled ? "Enabled" : "Enable"}
-                    </button>
                   </div>
                 </div>
               )}
 
               {message && (
-                <p className="mt-4 text-sm text-green-600">{message}</p>
+                <p role={messageType === "error" ? "alert" : "status"} className={`mt-4 text-sm ${messageType === "error" ? "text-red-600" : "text-green-600"}`}>{message}</p>
               )}
-
-              <motion.button
-                whileHover={{ x: 5 }}
-                className="mt-8 flex items-center gap-2 uppercase tracking-[0.18em] text-[11px] font-medium"
-              >
-                {card.button}
-                <ChevronRight size={16} strokeWidth={1.7} />
-              </motion.button>
             </motion.div>
           );
         })}

@@ -1,5 +1,15 @@
 import mongoose from 'mongoose';
 
+const cartItemSchema = new mongoose.Schema(
+  {
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'Product', required: true },
+    quantity: { type: Number, min: 1, required: true },
+    selectedColor: { type: String, default: '' },
+    selectedSize: { type: String, default: '' },
+  },
+  { _id: false }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -96,6 +106,19 @@ const userSchema = new mongoose.Schema(
     orders: {
       type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Order' }],
       default: [],
+    },
+    wishlist: {
+      type: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Product' }],
+      default: [],
+    },
+    cart: {
+      type: [cartItemSchema],
+      default: [],
+    },
+    preferences: {
+      emailNewsletter: { type: Boolean, default: true },
+      orderNotifications: { type: Boolean, default: true },
+      smsAlerts: { type: Boolean, default: false },
     },
     city: {
       type: String,

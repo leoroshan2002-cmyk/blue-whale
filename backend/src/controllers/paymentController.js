@@ -1,11 +1,11 @@
 import crypto from 'crypto';
 import dotenv from 'dotenv';
-import mongoose from 'mongoose';
 import Razorpay from 'razorpay';
 import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import emailService from '../services/email/emailService.js';
+import { calculateOrderPricing } from '../utils/orderPricing.js';
 
 dotenv.config();
 
@@ -15,58 +15,6 @@ const razorpay = process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET
       key_secret: process.env.RAZORPAY_KEY_SECRET,
     })
   : null;
-
-const normalizeOrderItem = (item) => {
-  const productId = String(
-    item.productId || item.product?.id || item.product?._id || item.product?.sku || item.id || item._id || item.sku || ''
-  ).trim();
-  const quantity = Number(item.quantity ?? item.qty ?? item.count ?? 1) || 1;
-  const price = Number(item.price ?? item.discountPrice ?? item.salePrice ?? item.unitPrice ?? 0) || 0;
-
-  return {
-    productId,
-    name: String(item.name || item.title || 'Product').trim() || 'Product',
-    quantity: Math.max(1, quantity),
-    price: Math.max(0, price),
-    image: item.image || item.images?.[0] || item.imageUrl || item.productImage || '',
-    color: item.color || item.selectedColor || item.variant?.color || '',
-    size: item.size || item.selectedSize || item.variant?.size || '',
-  };
-};
-
-const resolveItemImage = (item, product) => {
-  const candidates = [
-    item?.image,
-    item?.images?.[0],
-    item?.imageUrl,
-    item?.productImage,
-    item?.imagePath,
-    product?.image,
-    product?.images?.[0],
-    product?.imageUrl,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate.trim();
-    }
-  }
-
-  return '';
-};
-
-const findProductByIdentifier = async (identifier) => {
-  if (!identifier) return null;
-
-  const candidate = String(identifier).trim();
-  if (!candidate) return null;
-
-  if (mongoose.isValidObjectId(candidate)) {
-    return Product.findById(candidate);
-  }
-
-  return Product.findOne({ sku: candidate });
-};
 
 const normalizeShippingAddress = (payload = {}) => {
   const shipping = payload.shippingAddress || {};
@@ -122,17 +70,21 @@ export const normalizeCourierValue = (payload = {}) => {
   return 'Not Assigned';
 };
 
-const createOrderFromPayload = async (payload = {}) => {
+const createOrderFromPayload = async (payload = {}, authenticatedUser) => {
   const customerName = String(payload.customerName || payload.customer?.name || payload.customer?.fullName || 'Customer').trim() || 'Customer';
-  const customerEmail = String(payload.customerEmail || payload.customer?.email || '').trim().toLowerCase();
-  const items = Array.isArray(payload.items) ? payload.items : [];
-  const total = Number(payload.total ?? 0);
   const status = String(payload.status || 'Processing').trim();
   const paymentStatus = String(payload.paymentStatus || 'Pending').trim();
   const estimatedDeliveryValue = payload.estimatedDelivery ? new Date(payload.estimatedDelivery) : null;
 
-  if (!customerEmail) {
-    throw new Error('customerEmail is required');
+  if (!authenticatedUser?._id) {
+    throw new Error('An authenticated customer is required');
+  }
+  const pricing = await calculateOrderPricing(payload);
+  const submittedTotal = Number(payload.total);
+  if (!Number.isFinite(submittedTotal) || Math.abs(submittedTotal - pricing.total) > 0.01) {
+    const error = new Error('Product prices or checkout totals changed. Please review your cart and try again.');
+    error.status = 409;
+    throw error;
   }
 
   const buildUniqueOrderId = async (baseOrderId) => {
@@ -151,10 +103,6 @@ const createOrderFromPayload = async (payload = {}) => {
     return `${fallbackBase}-${Math.random().toString(36).slice(2, 8)}`;
   };
 
-  if (!Array.isArray(items) || items.length === 0) {
-    throw new Error('Incomplete order data');
-  }
-
   const customerPhone = String(payload.customerPhone || payload.customer?.phone || payload.customer?.mobile || '').trim();
   const normalizedShippingAddress = normalizeShippingAddress(payload);
   const customerAddressText = String(
@@ -169,56 +117,26 @@ const createOrderFromPayload = async (payload = {}) => {
       ''
   ).trim();
 
-  const normalizedItems = [];
-  for (const item of items) {
-    const normalizedItem = normalizeOrderItem(item);
-    if (normalizedItem.quantity <= 0) continue;
-
-    const fallbackProductId = normalizedItem.productId || `fallback-${Date.now()}-${normalizedItems.length + 1}`;
-    const matchedProduct = await findProductByIdentifier(normalizedItem.productId || fallbackProductId);
-    normalizedItems.push({
-      ...normalizedItem,
-      productId: matchedProduct?._id?.toString() || normalizedItem.productId || fallbackProductId,
-      image: resolveItemImage(item, matchedProduct),
-    });
-  }
-
-  if (normalizedItems.length === 0) {
-    throw new Error('Order must contain at least one valid item');
-  }
-
-  const orderTotal = total || normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const normalizedItems = pricing.items;
   const initialTrackingHistory = normalizeTrackingHistory(payload.trackingHistory, status, payload.paymentStatus === 'Paid' ? 'Payment verified' : 'Order placed');
   const normalizedEstimatedDelivery = estimatedDeliveryValue || (payload.estimatedDelivery ? new Date(payload.estimatedDelivery) : undefined);
-
-  for (const item of normalizedItems) {
-    const productId = item.productId;
-    const quantity = Number(item.quantity || item.qty || 1);
-    if (!productId || !quantity) continue;
-
-    const product = await findProductByIdentifier(productId);
-    if (!product) continue;
-
-    const availableStock = Number(product.stock || 0);
-    if (availableStock < quantity) {
-      throw new Error(`Insufficient stock for ${product.name}`);
-    }
-  }
 
   const normalizedCourier = normalizeCourierValue(payload);
 
   const orderData = {
-    customerName,
-    customerEmail,
+    userId: authenticatedUser._id,
+    customerName: authenticatedUser.name || customerName,
+    customerEmail: authenticatedUser.email,
     customerPhone,
     customerAddressText,
     items: normalizedItems,
-    subtotal: Number(payload.subtotal ?? normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)),
-    total: orderTotal,
-    shipping: Number(payload.shipping ?? 0),
-    deliveryCost: Number(payload.deliveryCost ?? payload.delivery?.cost ?? 0),
-    tax: Number(payload.tax ?? 0),
-    couponDiscount: Number(payload.couponDiscount ?? 0),
+    subtotal: pricing.subtotal,
+    total: pricing.total,
+    shipping: pricing.shipping,
+    deliveryCost: pricing.deliveryCost,
+    tax: pricing.tax,
+    couponDiscount: pricing.couponDiscount,
+    couponCode: pricing.couponCode,
     orderId: await buildUniqueOrderId(payload.orderId || payload.id || `ORD-${Date.now()}`),
     paymentStatus,
     status,
@@ -238,26 +156,14 @@ const createOrderFromPayload = async (payload = {}) => {
   const order = await Order.create(orderData);
 
   for (const item of normalizedItems) {
-    const productId = item.productId;
     const quantity = Number(item.quantity || item.qty || 1);
-    if (!productId || !quantity) continue;
-
-    const product = await findProductByIdentifier(productId);
-    if (!product) continue;
-
-    const remainingStock = Math.max(0, Number(product.stock || 0) - quantity);
-    await Product.findByIdAndUpdate(product._id, { stock: remainingStock });
+    await Product.findByIdAndUpdate(item.productId, { $inc: { stock: -quantity } });
   }
 
-  const matchedUser = customerEmail
-    ? await User.findOne({ email: customerEmail.toLowerCase() })
-    : null;
-
-  if (matchedUser) {
-    await User.findByIdAndUpdate(matchedUser._id, {
-      $addToSet: { orders: order._id },
-    });
-  }
+  await User.findByIdAndUpdate(authenticatedUser._id, {
+    $addToSet: { orders: order._id },
+    $set: { cart: [] },
+  });
 
   return order;
 };
@@ -268,17 +174,26 @@ export const createPaymentOrder = async (req, res) => {
       return res.status(500).json({ success: false, message: 'Razorpay is not configured on the server.' });
     }
 
+    const pricing = await calculateOrderPricing(req.body?.order || {});
     const amount = Number(req.body?.amount ?? req.body?.total ?? 0);
     if (!Number.isFinite(amount) || amount <= 0) {
       return res.status(400).json({ success: false, message: 'A valid amount is required.' });
     }
+    if (Math.abs(amount - pricing.total) > 0.01) {
+      return res.status(409).json({
+        success: false,
+        message: 'Product prices or checkout totals changed. Please review your cart and try again.',
+        pricing,
+      });
+    }
 
     const options = {
-      amount: Math.round(amount * 100),
+      amount: Math.round(pricing.total * 100),
       currency: 'INR',
       receipt: req.body?.receipt || `order_${Date.now()}`,
       notes: {
         purpose: 'HAIERAH purchase',
+        customerId: String(req.user.userId),
       },
     };
 
@@ -288,9 +203,10 @@ export const createPaymentOrder = async (req, res) => {
       success: true,
       order,
       razorpayKey: process.env.RAZORPAY_KEY_ID,
+      total: pricing.total,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Unable to create Razorpay order.', error: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Unable to create Razorpay order.' });
   }
 };
 
@@ -298,6 +214,10 @@ export const verifyPayment = async (req, res) => {
   try {
     if (!razorpay) {
       return res.status(500).json({ success: false, message: 'Razorpay is not configured on the server.' });
+    }
+    const authenticatedUser = await User.findById(req.user.userId);
+    if (!authenticatedUser) {
+      return res.status(401).json({ success: false, message: 'Authenticated customer was not found.' });
     }
 
     const {
@@ -329,6 +249,26 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Signature verification failed.' });
     }
 
+    const razorpayOrder = await razorpay.orders.fetch(razorpayOrderId);
+    if (String(razorpayOrder.notes?.customerId || '') !== String(authenticatedUser._id)) {
+      return res.status(403).json({ success: false, message: 'This payment does not belong to your account.' });
+    }
+    const existingOrder = await Order.findOne({
+      razorpayOrderId,
+      userId: authenticatedUser._id,
+    });
+    if (existingOrder) {
+      return res.status(200).json({
+        success: true,
+        message: 'Payment was already verified.',
+        order: existingOrder,
+      });
+    }
+    const pricing = await calculateOrderPricing(paymentOrderPayload || {});
+    if (Number(razorpayOrder.amount) !== Math.round(pricing.total * 100)) {
+      return res.status(400).json({ success: false, message: 'The payment amount does not match the current order total.' });
+    }
+
     const order = await createOrderFromPayload({
       ...paymentOrderPayload,
       paymentStatus: 'Paid',
@@ -338,17 +278,19 @@ export const verifyPayment = async (req, res) => {
       razorpaySignature,
       transactionId: razorpayPaymentId,
       status: paymentOrderPayload?.status || 'Processing',
-    });
+    }, authenticatedUser);
 
-    try {
-      await emailService.sendOrderStatusEmail(order, `Payment confirmed — Order ${order.orderId}`);
-    } catch (err) {
-      console.error('Failed to send order confirmation email', err);
+    if (authenticatedUser.preferences?.orderNotifications !== false) {
+      try {
+        await emailService.sendOrderStatusEmail(order, `Payment confirmed — Order ${order.orderId}`);
+      } catch (err) {
+        console.error('Failed to send order confirmation email', err);
+      }
     }
 
     res.status(201).json({ success: true, message: 'Payment verified and order created.', order });
   } catch (error) {
     console.error('Payment verification failed', error);
-    res.status(500).json({ success: false, message: 'Unable to verify payment.', error: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Unable to verify payment.' });
   }
 };

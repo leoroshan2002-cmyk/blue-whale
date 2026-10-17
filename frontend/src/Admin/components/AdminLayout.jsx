@@ -58,9 +58,10 @@ function AdminSidebar({
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-800">
           {!sidebarCollapsed && (
             <span className="font-black text-sm uppercase tracking-widest text-white flex items-center gap-2">
-              HAIERAH Admin <Sparkles className="w-4.5 h-4.5 text-amber-500" />
+             BlueWhale Admin <Sparkles className="w-4.5 h-4.5 text-amber-500" />
             </span>
           )}
+          -
           <button
             onClick={onToggleSidebar}
             className="p-1 rounded-lg hover:bg-slate-800 bg-slate-800 text-slate-400 hover:text-white mx-auto focus:outline-none"
@@ -193,7 +194,7 @@ function AdminHeader({
           <Menu className="w-5 h-5" />
         </button>
         <div className="admin-breadcrumb flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-50/50 px-3 py-1.5 rounded-lg">
-        <span> HAIERAH Applet</span>
+        <span> BlueWhale Applet</span>
         <span className="text-slate-300">&bull;</span>
         <span className="text-slate-900 dark:text-slate-100">
           {currentTab} module
@@ -324,7 +325,7 @@ function AdminFooter() {
         <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
         <span>Storefront Sandbox Active</span>
       </div>
-      <span>HAIERAH Clothing Admin Panel &bull; Rev 2026</span>
+      <span>BlueWhale Clothing Admin Panel &bull; Rev 2026</span>
     </footer>
   );
 }

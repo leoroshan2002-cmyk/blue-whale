@@ -1,4 +1,5 @@
 import Coupon from '../models/Coupon.js';
+import { evaluateCoupon } from '../utils/couponUtils.js';
 
 const toCouponResponse = (coupon) => {
   if (!coupon) return null;
@@ -6,6 +7,41 @@ const toCouponResponse = (coupon) => {
   doc.id = doc._id.toString();
   delete doc._id;
   return doc;
+};
+
+export const validatePublicCoupon = async (req, res) => {
+  try {
+    const code = String(req.query.code || '').trim().toUpperCase();
+    const subtotal = Number(req.query.subtotal);
+    if (!code || !Number.isFinite(subtotal) || subtotal < 0) {
+      return res.status(400).json({ success: false, message: 'A coupon code and valid subtotal are required.' });
+    }
+
+    const coupon = await Coupon.findOne({ code });
+    if (!coupon) return res.status(404).json({ success: false, message: 'Coupon not found.' });
+    const result = evaluateCoupon(coupon, subtotal);
+    if (!result.isValid) {
+      const messages = {
+        inactive: 'This coupon is currently inactive.',
+        expired: 'This coupon has expired.',
+        'min-spend': "The order does not meet this coupon's minimum spend.",
+        'limit-reached': 'This coupon has reached its usage limit.',
+      };
+      return res.status(400).json({
+        success: false,
+        message: messages[result.reason] || 'This coupon cannot be used for this order.',
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      coupon: toCouponResponse(coupon),
+      discountAmount: result.discountAmount,
+    });
+  } catch (error) {
+    console.error('Failed to validate public coupon:', error);
+    return res.status(500).json({ success: false, message: 'Unable to validate coupon.' });
+  }
 };
 
 export const listCoupons = async (_req, res) => {

@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { apiClient, buildApiUrl } from "../../services/api";
 import OrderCard from "../orders/OrderCard";
+import { useAuth } from "../../Context/AuthContext";
 
 const normalizeOrder = (order) => ({
   ...order,
@@ -40,72 +41,54 @@ const normalizeOrder = (order) => ({
 });
 
 export default function OrderHistory() {
+  const { user } = useAuth();
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
   const [orders, setOrders] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  const saveOrders = (nextOrders) => {
-    setOrders(nextOrders);
-    localStorage.setItem("userOrders", JSON.stringify(nextOrders));
-  };
-
-  const syncOrdersFromStorage = () => {
-    try {
-      const savedOrders = JSON.parse(localStorage.getItem("userOrders") || "[]");
-      if (!Array.isArray(savedOrders)) {
-        localStorage.removeItem("userOrders");
-        setOrders([]);
-        return;
-      }
-
-      const normalizedOrders = savedOrders.map(normalizeOrder);
-      setOrders(normalizedOrders);
-    } catch {
-      localStorage.removeItem("userOrders");
+  const refreshOrdersFromBackend = useCallback(async () => {
+    if (!user?.id) {
       setOrders([]);
+      setIsLoading(false);
+      setLoadError("Please sign in to view your orders.");
+      return;
     }
-  };
-
-  const refreshOrdersFromBackend = async () => {
+    setIsLoading(true);
+    setLoadError("");
     try {
-      const storedUser = JSON.parse(localStorage.getItem("user") || "null");
-      const userId = storedUser?._id || storedUser?.id;
-
-      if (!userId) {
-        syncOrdersFromStorage();
-        return;
-      }
-
-      const { data } = await apiClient.get(buildApiUrl(`/api/orders/user/${userId}`));
+      const { data } = await apiClient.get(buildApiUrl(`/api/orders/user/${encodeURIComponent(user.id)}`));
       const nextOrders = Array.isArray(data?.orders) ? data.orders.map(normalizeOrder) : [];
-      saveOrders(nextOrders);
+      setOrders(nextOrders);
     } catch (error) {
       console.error("Failed to load orders from backend", error);
-      syncOrdersFromStorage();
+      setOrders([]);
+      setLoadError(error?.response?.data?.message || "Unable to load your orders. Please try again.");
+    } finally {
+      setIsLoading(false);
     }
-  };
+  }, [user]);
 
   useEffect(() => {
-    refreshOrdersFromBackend();
-  }, []);
+    void refreshOrdersFromBackend();
+  }, [refreshOrdersFromBackend]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
 
-    const handleOrdersChanged = () => syncOrdersFromStorage();
+    const handleOrdersChanged = () => refreshOrdersFromBackend();
 
     window.addEventListener("haierah-order-created", handleOrdersChanged);
     window.addEventListener("haierah-order-cancelled", handleOrdersChanged);
     window.addEventListener("haierah-order-deleted", handleOrdersChanged);
-    window.addEventListener("storage", handleOrdersChanged);
 
     return () => {
       window.removeEventListener("haierah-order-created", handleOrdersChanged);
       window.removeEventListener("haierah-order-cancelled", handleOrdersChanged);
       window.removeEventListener("haierah-order-deleted", handleOrdersChanged);
-      window.removeEventListener("storage", handleOrdersChanged);
     };
-  }, []);
+  }, [refreshOrdersFromBackend]);
 
   const handleCancelOrder = async (orderId) => {
     const normalizedId = String(orderId || "").trim();
@@ -122,31 +105,20 @@ export default function OrderHistory() {
 
     try {
       const { data } = await apiClient.patch(buildApiUrl(`/api/orders/${encodeURIComponent(normalizedId)}/cancel`), { status: "Cancelled" });
-      const updatedOrders = orders.map((order) => {
-        const currentId = String(order.id || order.orderId || order._id || "");
-        return currentId === normalizedId ? normalizeOrder({ ...order, ...data.order }) : order;
-      });
-
-      saveOrders(updatedOrders);
+      if (data?.order) {
+        setOrders((current) => current.map((order) => (
+          String(order.id || order.orderId || order._id || "") === normalizedId
+            ? normalizeOrder({ ...order, ...data.order })
+            : order
+        )));
+      }
       await refreshOrdersFromBackend();
       if (typeof window !== "undefined") {
         window.dispatchEvent(new Event("haierah-order-cancelled"));
         window.dispatchEvent(new Event("haierah-order-created"));
       }
     } catch (error) {
-      const requestInfo = error?.config ? {
-        url: error.config.url,
-        method: error.config.method,
-        baseURL: error.config.baseURL,
-        headers: error.config.headers,
-      } : undefined;
-      console.error("Failed to cancel order", {
-        message: error?.message,
-        code: error?.code,
-        requestInfo,
-        responseData: error?.response?.data,
-        error,
-      });
+      console.error("Failed to cancel order", error);
       alert(error?.response?.data?.message || "Unable to cancel this order right now.");
     }
   };
@@ -225,7 +197,11 @@ export default function OrderHistory() {
         </div>
 
         {/* ORDERS */}
-        {filteredOrders.length > 0 ? (
+        {isLoading ? (
+          <p role="status" className="mt-10 text-center text-gray-500">Loading your orders…</p>
+        ) : loadError ? (
+          <p role="alert" className="mt-10 text-center text-red-700">{loadError}</p>
+        ) : filteredOrders.length > 0 ? (
           filteredOrders.map((order) => (
             <OrderCard
               key={order.id || order.orderId || order._id}

@@ -16,8 +16,6 @@ const transporter = hasSmtpConfig
             pass: process.env.SMTP_PASS,
           }
         : undefined,
-      logger: true,
-      debug: true,
       tls: {
         rejectUnauthorized: process.env.SMTP_REJECT_UNAUTHORIZED === 'false' ? false : true,
       },

@@ -3,45 +3,7 @@ import Order from '../models/Order.js';
 import Product from '../models/Product.js';
 import User from '../models/User.js';
 import emailService from '../services/email/emailService.js';
-
-const normalizeOrderItem = (item) => {
-  const productId = String(
-    item.productId || item.product?.id || item.product?._id || item.product?.sku || item.id || item._id || item.sku || ''
-  ).trim();
-  const quantity = Number(item.quantity ?? item.qty ?? item.count ?? 1) || 1;
-  const price = Number(item.price ?? item.discountPrice ?? item.salePrice ?? item.unitPrice ?? 0) || 0;
-
-  return {
-    productId,
-    name: String(item.name || item.title || 'Product').trim() || 'Product',
-    quantity: Math.max(1, quantity),
-    price: Math.max(0, price),
-    image: item.image || item.images?.[0] || item.imageUrl || item.productImage || '',
-    color: item.color || item.selectedColor || item.variant?.color || '',
-    size: item.size || item.selectedSize || item.variant?.size || '',
-  };
-};
-
-const resolveItemImage = (item, product) => {
-  const candidates = [
-    item?.image,
-    item?.images?.[0],
-    item?.imageUrl,
-    item?.productImage,
-    item?.imagePath,
-    product?.image,
-    product?.images?.[0],
-    product?.imageUrl,
-  ];
-
-  for (const candidate of candidates) {
-    if (typeof candidate === 'string' && candidate.trim()) {
-      return candidate.trim();
-    }
-  }
-
-  return '';
-};
+import { calculateOrderPricing } from '../utils/orderPricing.js';
 
 const findProductByIdentifier = async (identifier) => {
   if (!identifier) return null;
@@ -212,7 +174,8 @@ export const getOrderById = async (req, res) => {
     }
 
     const isAdmin = req.user?.role === 'admin';
-    const isOwner = req.user && String(req.user.userId || req.user.id || '') === String(order.customer?._id || '') ? true : false;
+    const isOwner = req.user
+      && String(req.user.userId || req.user.id || '') === String(order.userId || '');
     const emailMatches = String(order.customerEmail || '').toLowerCase() === String(req.user?.email || '').toLowerCase();
 
     if (!isAdmin && !emailMatches && !isOwner) {
@@ -241,7 +204,12 @@ export const getOrdersByUser = async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
 
-    const orders = await Order.find({ _id: { $in: user.orders || [] } }).sort({ createdAt: -1 });
+    const orders = await Order.find({
+      $or: [
+        { userId: user._id },
+        { _id: { $in: user.orders || [] } },
+      ],
+    }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, orders: orders.map(toOrderResponse) });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -251,14 +219,14 @@ export const getOrdersByUser = async (req, res) => {
 export const createOrder = async (req, res) => {
   try {
     const payload = req.body || {};
+    const authenticatedUser = await User.findById(req.user.userId);
+    if (!authenticatedUser) {
+      return res.status(401).json({ success: false, message: 'Authenticated customer was not found.' });
+    }
     const {
       errors,
       customerName,
-      customerEmail,
-      items,
       total,
-      status,
-      paymentStatus,
       estimatedDelivery,
     } = validateOrderPayload(payload);
 
@@ -282,26 +250,16 @@ export const createOrder = async (req, res) => {
       ''
     ).trim();
 
-    const normalizedItems = [];
-
-    for (const item of items) {
-      const normalizedItem = normalizeOrderItem(item);
-      if (!normalizedItem.productId || normalizedItem.quantity <= 0) continue;
-
-      const matchedProduct = await findProductByIdentifier(normalizedItem.productId);
-      normalizedItems.push({
-        ...normalizedItem,
-        productId: matchedProduct?._id?.toString() || normalizedItem.productId,
-        image: resolveItemImage(item, matchedProduct),
+    const pricing = await calculateOrderPricing(payload);
+    if (Math.abs(Number(total) - pricing.total) > 0.01) {
+      return res.status(409).json({
+        success: false,
+        message: 'Product prices or checkout totals changed. Please review your cart and try again.',
+        pricing,
       });
     }
-
-    if (normalizedItems.length === 0) {
-      return res.status(400).json({ message: 'Order must contain at least one valid item' });
-    }
-
-    const orderTotal = total || normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-    const initialStatus = status || 'Pending';
+    const normalizedItems = pricing.items;
+    const initialStatus = 'Pending';
     const initialTrackingHistory = normalizeTrackingHistory(payload.trackingHistory, initialStatus, 'Order placed');
     const normalizedEstimatedDelivery = estimatedDelivery || (payload.estimatedDelivery ? new Date(payload.estimatedDelivery) : undefined);
 
@@ -320,19 +278,21 @@ export const createOrder = async (req, res) => {
     }
 
     const orderData = {
-      customerName,
-      customerEmail,
+      userId: authenticatedUser._id,
+      customerName: authenticatedUser.name || customerName,
+      customerEmail: authenticatedUser.email,
       customerPhone,
       customerAddressText,
       items: normalizedItems,
-      subtotal: Number(payload.subtotal ?? normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0)),
-      total: orderTotal,
-      shipping: Number(payload.shipping ?? 0),
-      deliveryCost: Number(payload.deliveryCost ?? payload.delivery?.cost ?? 0),
-      tax: Number(payload.tax ?? 0),
-      couponDiscount: Number(payload.couponDiscount ?? 0),
+      subtotal: pricing.subtotal,
+      total: pricing.total,
+      shipping: pricing.shipping,
+      deliveryCost: pricing.deliveryCost,
+      tax: pricing.tax,
+      couponDiscount: pricing.couponDiscount,
+      couponCode: pricing.couponCode,
       orderId: payload.orderId || payload.id || `ORD-${Date.now()}`,
-      paymentStatus: paymentStatus || 'Pending',
+      paymentStatus: 'Pending',
       status: initialStatus,
       paymentMethod: payload.paymentMethod || 'Cash on Delivery',
       customerAvatar: payload.customerAvatar || '',
@@ -346,10 +306,12 @@ export const createOrder = async (req, res) => {
     const order = await Order.create(orderData);
 
     // Email delivery must not hold the checkout response open when SMTP is slow or unavailable.
-    void emailService
-      .sendOrderStatusEmail(order, `Order confirmation - Order ${order.orderId}`)
-      .then(() => console.log('Order confirmation email sent successfully.'))
-      .catch((err) => console.error('Failed to send order confirmation email:', err?.message || err));
+    if (authenticatedUser.preferences?.orderNotifications !== false) {
+      void emailService
+        .sendOrderStatusEmail(order, `Order confirmation - Order ${order.orderId}`)
+        .then(() => console.log('Order confirmation email sent successfully.'))
+        .catch((err) => console.error('Failed to send order confirmation email:', err?.message || err));
+    }
 
     for (const item of normalizedItems) {
       const productId = item.productId;
@@ -363,19 +325,14 @@ export const createOrder = async (req, res) => {
       await Product.findByIdAndUpdate(product._id, { stock: remainingStock });
     }
 
-    const matchedUser = customerEmail
-      ? await User.findOne({ email: customerEmail.toLowerCase() })
-      : null;
-
-    if (matchedUser) {
-      await User.findByIdAndUpdate(matchedUser._id, {
-        $addToSet: { orders: order._id },
-      });
-    }
+    await User.findByIdAndUpdate(authenticatedUser._id, {
+      $addToSet: { orders: order._id },
+      $set: { cart: [] },
+    });
 
     res.status(201).json({ success: true, order: toOrderResponse(order) });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(error.status || 500).json({ success: false, message: error.message || 'Unable to create order.' });
   }
 };
 
@@ -396,6 +353,15 @@ const applyStatusUpdate = async (req, res, { allowCancel = false } = {}) => {
     const existingOrder = await Order.findOne(query);
     if (!existingOrder) {
       return res.status(404).json({ message: 'Order not found' });
+    }
+
+    if (
+      allowCancel
+      && req.user?.role !== 'admin'
+      && String(existingOrder.userId || '') !== String(req.user?.userId || '')
+      && String(existingOrder.customerEmail || '').toLowerCase() !== String(req.user?.email || '').toLowerCase()
+    ) {
+      return res.status(403).json({ message: 'Not authorized to cancel this order' });
     }
 
     const update = {};
@@ -467,7 +433,12 @@ const applyStatusUpdate = async (req, res, { allowCancel = false } = {}) => {
     const notifyStatuses = ['Confirmed', 'Processing', 'Packed', 'Shipped', 'Out for Delivery', 'Delivered', 'Cancelled'];
     if (previousStatus !== nextStatus && notifyStatuses.includes(nextStatus)) {
       try {
-        await emailService.sendOrderStatusEmail(updatedOrder);
+        const customer = existingOrder.userId
+          ? await User.findById(existingOrder.userId).select('preferences')
+          : await User.findOne({ email: existingOrder.customerEmail }).select('preferences');
+        if (customer?.preferences?.orderNotifications !== false) {
+          await emailService.sendOrderStatusEmail(updatedOrder);
+        }
       } catch (err) {
         console.error('Failed to send order status email', err);
       }

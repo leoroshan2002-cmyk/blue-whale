@@ -1,12 +1,37 @@
+import mongoose from 'mongoose';
 import Category from '../models/Category.js';
 import { uploadToCloudinary } from '../middleware/cloudinaryStorage.js';
 import cloudinary from '../config/cloudinary.js';
 
 const toCategoryResponse = (category) => {
-  const doc = category.toObject();
-  doc.id = doc._id.toString();
+  const doc = category.toObject ? category.toObject() : { ...category };
+  doc.id = String(doc._id || doc.id);
   delete doc._id;
   return doc;
+};
+
+const sendCategoryError = (res, error, action) => {
+  if (error?.code === 11000) {
+    const duplicateField = Object.keys(error.keyPattern || error.keyValue || {})[0];
+    const message = duplicateField
+      ? `A category with this ${duplicateField} already exists.`
+      : 'A category with this name or slug already exists.';
+    return res.status(409).json({ success: false, message });
+  }
+
+  if (error?.name === 'ValidationError') {
+    const message = Object.values(error.errors || {})
+      .map((validationError) => validationError.message)
+      .join(' ');
+    return res.status(400).json({ success: false, message: message || 'Invalid category data.' });
+  }
+
+  if (error?.name === 'CastError') {
+    return res.status(400).json({ success: false, message: 'Invalid category ID.' });
+  }
+
+  console.error(`Failed to ${action} category:`, error);
+  return res.status(500).json({ success: false, message: `Unable to ${action} category.` });
 };
 
 export const listCategories = async (_req, res) => {
@@ -14,7 +39,7 @@ export const listCategories = async (_req, res) => {
     const categories = await Category.find().sort({ createdAt: -1 });
     res.status(200).json({ success: true, categories: categories.map(toCategoryResponse) });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendCategoryError(res, error, 'load');
   }
 };
 
@@ -72,13 +97,17 @@ export const createCategory = async (req, res) => {
     const category = await Category.create(payload);
     res.status(201).json({ success: true, category: toCategoryResponse(category) });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendCategoryError(res, error, 'create');
   }
 };
 
 export const updateCategory = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid category ID.' });
+    }
+
     const payload = normalizeCategoryPayload({ ...req.body });
     
     if (req.file) {
@@ -106,13 +135,17 @@ export const updateCategory = async (req, res) => {
 
     res.status(200).json({ success: true, category: toCategoryResponse(updatedCategory) });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendCategoryError(res, error, 'update');
   }
 };
 
 export const deleteCategory = async (req, res) => {
   try {
     const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(400).json({ success: false, message: 'Invalid category ID.' });
+    }
+
     const deletedCategory = await Category.findByIdAndDelete(id);
 
     if (!deletedCategory) {
@@ -121,6 +154,6 @@ export const deleteCategory = async (req, res) => {
 
     res.status(200).json({ success: true, message: 'Category deleted successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error: error.message });
+    return sendCategoryError(res, error, 'delete');
   }
 };

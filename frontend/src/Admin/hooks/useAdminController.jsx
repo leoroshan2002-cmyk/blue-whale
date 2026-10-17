@@ -48,12 +48,20 @@ export function useAdminController() {
 
     const fetchAdminData = async () => {
       try {
-        const [productsResponse, categoriesResponse, customersResponse, couponsResponse] = await Promise.all([
+        const results = await Promise.allSettled([
           apiClient.get('/api/admin/products'),
           apiClient.get('/api/admin/categories'),
           apiClient.get('/api/admin/customers'),
-          apiClient.get('/api/admin/coupons').catch(() => ({ data: { coupons: [] } }))
+          apiClient.get('/api/admin/coupons')
         ]);
+        const [productsResult, categoriesResult, customersResult, couponsResult] = results;
+        const resultNames = ['products', 'categories', 'customers', 'coupons'];
+
+        results.forEach((result, index) => {
+          if (result.status === 'rejected') {
+            console.error(`Failed to load admin ${resultNames[index]}:`, result.reason);
+          }
+        });
 
         let ordersResponse;
         try {
@@ -64,6 +72,10 @@ export function useAdminController() {
 
         if (!isMounted) return;
 
+        const productsResponse = productsResult.status === 'fulfilled' ? productsResult.value : null;
+        const categoriesResponse = categoriesResult.status === 'fulfilled' ? categoriesResult.value : null;
+        const customersResponse = customersResult.status === 'fulfilled' ? customersResult.value : null;
+        const couponsResponse = couponsResult.status === 'fulfilled' ? couponsResult.value : null;
         const serverProducts = Array.isArray(productsResponse?.data?.products) ? productsResponse.data.products : [];
         const serverCategories = Array.isArray(categoriesResponse?.data?.categories) ? categoriesResponse.data.categories : [];
         const serverOrders = Array.isArray(ordersResponse?.data?.orders) ? ordersResponse.data.orders : [];
@@ -161,7 +173,7 @@ export function useAdminController() {
         setState((prev) => ({
           ...prev,
           products: serverProducts.length > 0 ? serverProducts : prev.products,
-          categories: serverCategories.length > 0 ? serverCategories : prev.categories,
+          categories: serverCategories,
           orders: mergedOrders,
           customers: normalizedCustomers.length > 0 ? normalizedCustomers : prev.customers,
           coupons: serverCoupons.length > 0 ? serverCoupons : prev.coupons
@@ -382,12 +394,17 @@ export function useAdminController() {
       triggerToast(`Category added: ${savedCategory.name}`);
     } catch (error) {
       console.error('Failed to save category:', error);
-      alert(error.message || 'Unable to save category to the backend.');
+      alert(error.response?.data?.message || error.message || 'Unable to save category to the backend.');
     }
   };
 
   const handleUpdateCategory = async (cat) => {
     try {
+      if (!/^[a-f\d]{24}$/i.test(cat.id)) {
+        alert('This category is not saved in the database. Refresh the page and try again.');
+        return;
+      }
+
       const { id, ...categoryData } = cat;
       const formData = buildCategoryFormData(categoryData);
       const { data } = await apiClient.put(`/api/admin/categories/${cat.id}`, formData);
@@ -399,12 +416,17 @@ export function useAdminController() {
       addNotification(`Category updated: ${updatedCategory.name || cat.name}`);
     } catch (error) {
       console.error('Failed to update category:', error);
-      alert(error.message || 'Unable to update category in the backend.');
+      alert(error.response?.data?.message || error.message || 'Unable to update category in the backend.');
     }
   };
 
   const handleDeleteCategory = async (id) => {
     try {
+      if (!/^[a-f\d]{24}$/i.test(id)) {
+        alert('This category is not saved in the database. Refresh the page and try again.');
+        return;
+      }
+
       await apiClient.delete(`/api/admin/categories/${id}`);
       setState((prev) => ({
         ...prev,
@@ -413,7 +435,7 @@ export function useAdminController() {
       addNotification('Category removed from the catalog.');
     } catch (error) {
       console.error('Failed to delete category:', error);
-      alert(error.message || 'Unable to delete category from the backend.');
+      alert(error.response?.data?.message || error.message || 'Unable to delete category from the backend.');
     }
   };
 

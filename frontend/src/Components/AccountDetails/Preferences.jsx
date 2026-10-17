@@ -1,22 +1,78 @@
 import { motion } from "framer-motion";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Bell,
   Mail,
   Smartphone,
 } from "lucide-react";
+import { apiClient } from "../../services/api";
+import { useAuth } from "../../Context/AuthContext";
 
 export default function Preferences() {
-  const [emailNews, setEmailNews] = useState(true);
-  const [orderUpdates, setOrderUpdates] = useState(true);
-  const [smsAlerts, setSmsAlerts] = useState(false);
+  const { user, isAuthReady } = useAuth();
+  const [preferences, setPreferences] = useState({
+    emailNewsletter: true,
+    orderNotifications: true,
+    smsAlerts: false,
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const [saving, setSaving] = useState("");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  const Toggle = ({ enabled, setEnabled }) => (
+  useEffect(() => {
+    if (!isAuthReady) return undefined;
+    let cancelled = false;
+    if (!user?.id) {
+      setError("Please sign in to manage your communication preferences.");
+      setIsLoading(false);
+      return () => { cancelled = true; };
+    }
+    setIsLoading(true);
+    apiClient.get("/api/users/me/preferences")
+      .then(({ data }) => {
+        if (!cancelled && data?.preferences) {
+          setPreferences((current) => ({ ...current, ...data.preferences }));
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setError(requestError?.response?.data?.message || "Unable to load your preferences.");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [isAuthReady, user?.id]);
+
+  const handleToggle = async (key) => {
+    if (!user?.id || saving) return;
+    const nextPreferences = { ...preferences, [key]: !preferences[key] };
+    setSaving(key);
+    setError("");
+    setSuccess("");
+    try {
+      const { data } = await apiClient.put("/api/users/me/preferences", nextPreferences);
+      setPreferences((current) => ({ ...current, ...data.preferences }));
+      setSuccess("Your preferences have been saved.");
+    } catch (requestError) {
+      setError(requestError?.response?.data?.message || "Unable to save your preferences.");
+    } finally {
+      setSaving("");
+    }
+  };
+
+  const Toggle = ({ enabled, preferenceKey }) => (
     <button
-      onClick={() => setEnabled(!enabled)}
+      type="button"
+      onClick={() => handleToggle(preferenceKey)}
+      disabled={isLoading || Boolean(saving)}
+      aria-pressed={enabled}
+      aria-label={`Turn ${preferenceKey} ${enabled ? "off" : "on"}`}
       className={`relative h-7 w-14 rounded-full transition-all duration-300 ${
         enabled ? "bg-black" : "bg-zinc-300"
-      }`}
+      } disabled:cursor-wait disabled:opacity-60`}
     >
       <motion.div
         layout
@@ -37,22 +93,19 @@ export default function Preferences() {
       icon: Mail,
       title: "Email Newsletter",
       subtitle: "Receive exclusive collections and seasonal offers.",
-      enabled: emailNews,
-      setEnabled: setEmailNews,
+      key: "emailNewsletter",
     },
     {
       icon: Bell,
       title: "Order Notifications",
       subtitle: "Shipping updates, delivery status and order activity.",
-      enabled: orderUpdates,
-      setEnabled: setOrderUpdates,
+      key: "orderNotifications",
     },
     {
       icon: Smartphone,
       title: "SMS Alerts",
       subtitle: "Receive important updates directly on your phone.",
-      enabled: smsAlerts,
-      setEnabled: setSmsAlerts,
+      key: "smsAlerts",
     },
   ];
 
@@ -77,6 +130,9 @@ export default function Preferences() {
       </div>
 
       <div className="border-b border-zinc-300 mb-8"></div>
+
+      {error && <p role="alert" className="mb-4 text-sm text-red-700">{error}</p>}
+      {success && <p role="status" className="mb-4 text-sm text-green-700">{success}</p>}
 
       <div className="space-y-4">
 
@@ -111,8 +167,8 @@ export default function Preferences() {
               </div>
 
               <Toggle
-                enabled={item.enabled}
-                setEnabled={item.setEnabled}
+                enabled={Boolean(preferences[item.key])}
+                preferenceKey={item.key}
               />
             </motion.div>
           );

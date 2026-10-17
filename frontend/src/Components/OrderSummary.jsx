@@ -24,6 +24,7 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
     const [couponCode, setCouponCode] = useState("");
     const [couponMessage, setCouponMessage] = useState("");
     const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
     const navigate = useNavigate();
     const { user } = useAuth();
 
@@ -53,53 +54,30 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
     const tax = Number((taxableSubtotal * 0.05).toFixed(2));
     const total = Number((taxableSubtotal + shipping + deliveryCost + tax).toFixed(2));
 
-    const handleApplyCoupon = () => {
+    const handleApplyCoupon = async () => {
         const normalizedCode = String(couponCode || '').trim().toUpperCase();
-        let storedCouponsPayload;
-        try {
-            storedCouponsPayload = localStorage.getItem('hyra_shopify_admin_coupons');
-        } catch {
-            setCouponMessage('Coupons are temporarily unavailable.');
+        if (!normalizedCode) {
+            setCouponMessage('Enter a coupon code.');
+            setAppliedCoupon(null);
             return;
         }
-        let storedCoupons;
-
+        setIsApplyingCoupon(true);
+        setCouponMessage("");
         try {
-            if (storedCouponsPayload) {
-                storedCoupons = JSON.parse(storedCouponsPayload);
-            } else {
-                const savedState = JSON.parse(localStorage.getItem('haierah-state') || '{}');
-                storedCoupons = Array.isArray(savedState.coupons) ? savedState.coupons : [];
+            const { data } = await apiClient.get("/api/coupons/validate", {
+                params: { code: normalizedCode, subtotal },
+            });
+            if (!data?.success || !data?.coupon) {
+                throw new Error(data?.message || "Unable to validate this coupon.");
             }
-        } catch {
-            setCouponMessage('Coupon data is unavailable.');
+            setAppliedCoupon(data.coupon);
+            setCouponMessage(`Coupon applied: ${data.coupon.code}`);
+        } catch (error) {
             setAppliedCoupon(null);
-            return;
+            setCouponMessage(error?.response?.data?.message || error.message || "Unable to validate this coupon.");
+        } finally {
+            setIsApplyingCoupon(false);
         }
-
-        if (storedCoupons && !Array.isArray(storedCoupons) && Array.isArray(storedCoupons.coupons)) {
-            storedCoupons = storedCoupons.coupons;
-        }
-
-        const match = Array.isArray(storedCoupons)
-            ? storedCoupons.find((coupon) => String(coupon.code || '').trim().toUpperCase() === normalizedCode)
-            : null;
-
-        if (!match) {
-            setCouponMessage('Coupon not found.');
-            setAppliedCoupon(null);
-            return;
-        }
-
-        const result = evaluateCoupon(match, subtotal);
-        if (!result.isValid) {
-            setCouponMessage(result.reason === 'expired' ? 'This coupon has expired.' : result.reason === 'inactive' ? 'This coupon is currently inactive.' : 'This coupon cannot be used for the current order.');
-            setAppliedCoupon(null);
-            return;
-        }
-
-        setAppliedCoupon(match);
-        setCouponMessage(`Coupon applied: ${match.code}`);
     };
 
     const loadRazorpayScript = () => new Promise((resolve, reject) => {
@@ -227,7 +205,7 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
             setOrderStatusMessage("Processing your order...");
 
             if (selectedPaymentMethod === PAYMENT_METHODS.cod.value) {
-                await apiClient.post(buildApiUrl("/api/orders"), {
+                const { data } = await apiClient.post(buildApiUrl("/api/orders"), {
                     orderId: orderPayload.orderId,
                     customerName: orderPayload.customerName,
                     customerEmail: orderPayload.customerEmail,
@@ -239,6 +217,7 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                     deliveryCost: orderPayload.deliveryCost,
                     tax: orderPayload.tax,
                     couponDiscount: orderPayload.couponDiscount,
+                    couponCode: orderPayload.couponCode,
                     paymentStatus: "Pending",
                     status: orderPayload.status,
                     paymentMethod: orderPayload.paymentMethod,
@@ -248,9 +227,6 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                     delivery: orderPayload.delivery,
                 });
 
-                const existingOrders = JSON.parse(localStorage.getItem("userOrders") || "[]");
-                localStorage.setItem("userOrders", JSON.stringify([orderPayload, ...existingOrders]));
-
                 if (typeof window !== "undefined") {
                     invalidateProductCache();
                     window.dispatchEvent(new Event("haierah-order-created"));
@@ -259,10 +235,11 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
 
                 clearCart();
                 setIsProcessing(false);
-                setConfirmedOrderId(orderPayload.orderId);
+                const savedOrderId = data?.order?.orderId || data?.order?.id || orderPayload.orderId;
+                setConfirmedOrderId(savedOrderId);
                 setShowSuccess(true);
                 setOrderStatusMessage("Your order was placed successfully.");
-                onOrderComplete?.({ orderId: orderPayload.orderId, paymentMethod: selectedPaymentMethod });
+                onOrderComplete?.({ orderId: savedOrderId, paymentMethod: selectedPaymentMethod });
                 toast.success("Order placed successfully.");
 
                 setTimeout(() => {
@@ -297,8 +274,6 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                         });
 
                         if (data?.success) {
-                            const existingOrders = JSON.parse(localStorage.getItem("userOrders") || "[]");
-                            localStorage.setItem("userOrders", JSON.stringify([{ ...orderPayload, paymentStatus: "Paid", paymentMethod: "Razorpay", payment: { ...orderPayload.payment, method: "Razorpay", status: "Paid", transaction: response.razorpay_payment_id }, razorpayOrderId: response.razorpay_order_id, razorpayPaymentId: response.razorpay_payment_id, razorpaySignature: response.razorpay_signature, transactionId: response.razorpay_payment_id }, ...existingOrders]));
                             if (typeof window !== "undefined") {
                                 invalidateProductCache();
                                 window.dispatchEvent(new Event("haierah-order-created"));
@@ -306,14 +281,15 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                             }
                             clearCart();
                             setIsProcessing(false);
-                            setConfirmedOrderId(orderPayload.orderId);
+                            const savedOrderId = data?.order?.orderId || data?.order?.id || orderPayload.orderId;
+                            setConfirmedOrderId(savedOrderId);
                             setOrderStatusMessage("Your order was placed successfully.");
                             setShowSuccess(true);
-                            onOrderComplete?.({ orderId: orderPayload.orderId, paymentMethod: selectedPaymentMethod });
+                            onOrderComplete?.({ orderId: savedOrderId, paymentMethod: selectedPaymentMethod });
                             toast.success("Payment successful. Order placed.");
                             setTimeout(() => {
                                 setShowSuccess(false);
-                                navigate("/order-success", { state: { orderId: orderPayload.orderId } });
+                                navigate("/order-success", { state: { orderId: savedOrderId } });
                             }, 1500);
                         } else {
                             throw new Error(data?.message || "Payment verification failed.");
@@ -321,6 +297,7 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                     } catch (error) {
                         const backendMessage = error?.response?.data?.error || error?.response?.data?.message || error?.message || "Unable to verify payment.";
                         console.error("Razorpay verification failed", error?.response?.data || error);
+                        setIsProcessing(false);
                         onPaymentError?.(backendMessage);
                         toast.error(backendMessage);
                     }
@@ -335,6 +312,7 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                 },
                 modal: {
                     ondismiss: () => {
+                        setIsProcessing(false);
                         onPaymentError?.("Payment cancelled.");
                         toast.warning("Payment cancelled.");
                     },
@@ -426,10 +404,12 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                     />
 
                     <button
+                        type="button"
                         onClick={handleApplyCoupon}
-                        className="rounded-r-2xl bg-[#0d2746] px-4 text-sm text-white duration-300 hover:bg-black sm:px-6"
+                        disabled={isApplyingCoupon}
+                        className="rounded-r-2xl bg-[#0d2746] px-4 text-sm text-white duration-300 hover:bg-black disabled:cursor-wait disabled:opacity-60 sm:px-6"
                     >
-                        Apply
+                        {isApplyingCoupon ? "Checking…" : "Apply"}
                     </button>
 
                 </div>

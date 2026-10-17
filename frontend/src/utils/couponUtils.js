@@ -41,7 +41,7 @@ export const evaluateCoupon = (coupon, subtotal = 0) => {
   if (type === 'FixedAmount') {
     discountAmount = Math.min(value, subtotal);
   } else if (type === 'Percentage') {
-    discountAmount = Number(((subtotal * value) / 100).toFixed(2));
+    discountAmount = Math.min(subtotal, Number(((subtotal * value) / 100).toFixed(2)));
   }
 
   return {

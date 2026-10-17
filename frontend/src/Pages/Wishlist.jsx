@@ -15,7 +15,7 @@ const categories = ["All", "Sarees", "Dhotis"];
 
 export default function Wishlist() {
   const navigate = useNavigate();
-  const { wishlist = [], removeFromWishlist, clearWishlist } = useWishlist();
+  const { wishlist = [], isWishlistReady, wishlistError, removeFromWishlist, clearWishlist } = useWishlist();
   const { addToCart } = useCart();
   const [activeCategory, setActiveCategory] = useState("All");
 
@@ -101,7 +101,11 @@ export default function Wishlist() {
             </button>
           </div>
 
-          {products.length > 0 ? (
+          {!isWishlistReady ? (
+            <p role="status" className="py-12 text-center text-gray-600">Loading your saved wishlist…</p>
+          ) : wishlistError ? (
+            <p role="alert" className="py-12 text-center text-red-700">{wishlistError}</p>
+          ) : products.length > 0 ? (
             <div className="bw-wishlist-grid">
               {products.map((product) => (
                 <article className="bw-product-card" key={productId(product)}>

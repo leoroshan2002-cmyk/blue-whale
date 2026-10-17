@@ -24,10 +24,20 @@ const currentFile = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFile);
 
 const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
+const allowedOrigins = new Set([
+  ...frontendOrigin.split(",").map((origin) => origin.trim()).filter(Boolean),
+  "https://blue-whale-flax.vercel.app",
+]);
 
 app.use(
   cors({
-    origin: frontendOrigin,
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.has(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(null, false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],

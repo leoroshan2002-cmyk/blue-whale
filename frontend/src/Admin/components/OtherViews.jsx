@@ -18,8 +18,6 @@ export const CategoriesView = ({
   const [slug, setSlug] = useState('');
   const [image, setImage] = useState('');
   const [imageFile, setImageFile] = useState(null);
-  const [subCategories, setSubCategories] = useState([]);
-  const [newSubCategory, setNewSubCategory] = useState('');
   const [expandedCategoryIds, setExpandedCategoryIds] = useState([]);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
@@ -35,8 +33,6 @@ export const CategoriesView = ({
     setSlug('');
     setImage('https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400');
     setImageFile(null);
-    setSubCategories([]);
-    setNewSubCategory('');
     setIsFormOpen(true);
   };
 
@@ -46,12 +42,6 @@ export const CategoriesView = ({
     setSlug(cat.slug);
     setImage(cat.image);
     setImageFile(null);
-    setSubCategories(Array.isArray(cat.subCategories)
-      ? cat.subCategories
-      : cat.subCategory
-        ? [cat.subCategory]
-        : []);
-    setNewSubCategory('');
     setIsFormOpen(true);
   };
 
@@ -59,17 +49,6 @@ export const CategoriesView = ({
     setExpandedCategoryIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]
     );
-  };
-
-  const addSubCategory = () => {
-    const trimmed = newSubCategory.trim();
-    if (!trimmed) return;
-    setSubCategories((prev) => Array.from(new Set([...prev, trimmed])));
-    setNewSubCategory('');
-  };
-
-  const removeSubCategory = (value) => {
-    setSubCategories((prev) => prev.filter((item) => item !== value));
   };
 
   const handleDeleteClick = (cat) => {
@@ -92,18 +71,25 @@ export const CategoriesView = ({
 
   const handleSave = (e) => {
     e.preventDefault();
-    if (!name || !slug || subCategories.length === 0) {
-      alert('Please provide the category name, slug, and at least one subcategory.');
+    if (!name || !slug) {
+      alert('Please provide the category name and slug.');
       return;
     }
 
-    const normalizedSubs = Array.from(new Set(subCategories.map((item) => item.trim()).filter(Boolean)));
+    const storedSubcategories = Array.isArray(editingCat?.subCategories)
+      ? editingCat.subCategories
+      : editingCat?.subCategory ? [editingCat.subCategory] : ['General'];
+    const normalizedSubs = storedSubcategories.length > 0 ? storedSubcategories : ['General'];
+    const existingCards = Array.isArray(editingCat?.subCategoryCards) ? editingCat.subCategoryCards : [];
     const payload = {
       id: editingCat ? editingCat.id : `cat-${Date.now()}`,
       name,
       slug,
       subCategories: normalizedSubs,
       subCategory: normalizedSubs[0] || '',
+      subCategoryCards: existingCards.length > 0
+        ? existingCards
+        : normalizedSubs.map((subcategory) => ({ name: subcategory, subtitle: '', image: '' })),
       image,
       imageFile,
       description: `Boutique fashion listing for Hyra ${name} lines.`
@@ -124,8 +110,8 @@ export const CategoriesView = ({
     <div className="space-y-6 text-left animate-fade-in" id="categories-panel">
       <div className="flex justify-between items-center py-2">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Section Taxonomy (Categories)</h2>
-          <p className="text-xs text-slate-500 mt-1">Configure retail departments, thumbnails, and products mapping logs.</p>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Men &amp; Women Collections</h2>
+          <p className="text-xs text-slate-500 mt-1">Create and update main departments. Edit collection cards in the separate Subcategories screen.</p>
         </div>
         <button
           onClick={handleOpenAdd}
@@ -204,7 +190,7 @@ export const CategoriesView = ({
 
       {isFormOpen && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 w-full max-w-sm p-6 shadow-2xl relative">
+          <div className="max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 w-full max-w-lg p-6 shadow-2xl relative">
             <h3 className="font-bold text-slate-900 dark:text-white mb-4">
               {editingCat ? 'Update Category' : 'Create Category Department'}
             </h3>
@@ -232,45 +218,6 @@ export const CategoriesView = ({
                   placeholder="winter-overcoats"
                   className="w-full border p-2 bg-slate-50 rounded-lg font-mono dark:bg-slate-950 dark:text-white"
                 />
-              </div>
-
-              <div className="space-y-3">
-                <span className="text-[10px] text-slate-400 font-bold uppercase">SUBCATEGORIES</span>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newSubCategory}
-                    onChange={(e) => setNewSubCategory(e.target.value)}
-                    placeholder="Add subcategory"
-                    className="w-full border p-2 bg-slate-50 rounded-lg dark:bg-slate-950 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={addSubCategory}
-                    className="px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg font-bold"
-                  >
-                    Add
-                  </button>
-                </div>
-
-                {subCategories.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {subCategories.map((subcat, subIndex) => (
-                      <button
-                        key={`${editingCat?.id || 'category'}-subcat-${subcat || subIndex}-${subIndex}`}
-                        type="button"
-                        onClick={() => removeSubCategory(subcat)}
-                        className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-3 py-1 text-[11px] text-slate-700 dark:text-slate-200"
-                      >
-                        {subcat}
-                        <span className="text-rose-500">×</span>
-                      </button>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[9px] text-slate-500">Add at least one subcategory tag for this category.</p>
-                )}
-                <p className="text-[9px] text-slate-500">Tap a subcategory chip to remove it, or add new subcategory values here.</p>
               </div>
 
               <div className="space-y-1">

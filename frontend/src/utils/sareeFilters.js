@@ -28,7 +28,13 @@ const labelFields = (p) => [
   ...(Array.isArray(p?.tags) ? p.tags : []),
 ];
 
-const collectionFields = (p) => [p?.subCategory, p?.subcategory, p?.collection, p?.type];
+const collectionFields = (p) => [
+  ...(Array.isArray(p?.subCategories) ? p.subCategories : []),
+  ...(Array.isArray(p?.subCategory) ? p.subCategory : [p?.subCategory]),
+  p?.subcategory,
+  p?.collection,
+  p?.type,
+];
 
 export const productId = (p) => String(p?.id ?? p?._id ?? "");
 

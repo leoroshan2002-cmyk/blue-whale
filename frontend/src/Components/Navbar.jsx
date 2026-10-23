@@ -1,18 +1,13 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Heart, Menu, Search, ShoppingBag, X } from "lucide-react";
+import { Heart, Menu, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useWishlist } from "../Context/WhislistContext";
 import { useCart } from "../Context/CartContext";
 import logotransparent from "../assets/BlueWhaleLogoTransparent.png";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import SearchBar from "./SearchBar";
-
-const navItems = [
-  { name: "Home", path: "/", end: true },
-  { name: "Men", path: "/category/men" },
-  { name: "Women", path: "/category/women" },
-  { name: "Combo", path: "/products" },
-];
+import { fetchCategories } from "../services/api";
+import { subscribeToCatalogChanges } from "../utils/catalogSync";
 
 export default function Navbar() {
   const { wishlist } = useWishlist();
@@ -26,6 +21,17 @@ export default function Navbar() {
   const [search, setSearch] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [categoryLoadError, setCategoryLoadError] = useState("");
+
+  const navItems = [
+    { name: "Home", path: "/", end: true },
+    ...categories.map((category) => ({
+      name: category.name,
+      path: `/category/${encodeURIComponent(category.slug)}`,
+    })),
+    { name: "Shop all", path: "/products" },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
@@ -36,6 +42,30 @@ export default function Navbar() {
 
     return () => {
       window.removeEventListener("scroll", handleScroll);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCategories = async () => {
+      try {
+        const items = await fetchCategories();
+        if (!cancelled) {
+          setCategories(items);
+          setCategoryLoadError("");
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load navigation categories:", error);
+          setCategoryLoadError(error?.response?.data?.message || error?.message || "Unable to load categories.");
+        }
+      }
+    };
+    void loadCategories();
+    const unsubscribe = subscribeToCatalogChanges(loadCategories);
+    return () => {
+      cancelled = true;
+      unsubscribe();
     };
   }, []);
 
@@ -95,6 +125,7 @@ export default function Navbar() {
               </NavLink>
             </motion.div>
           ))}
+          {categoryLoadError && <span className="sr-only" role="alert">Categories could not be loaded: {categoryLoadError}</span>}
         </nav>
 
         {/* ICONS */}
@@ -128,6 +159,7 @@ export default function Navbar() {
           <NavLink
             to="/cart"
             className="relative rounded-full p-1.5 hover:text-amber-700 transition"
+            aria-label="Shopping bag"
           >
             <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
 
@@ -136,6 +168,15 @@ export default function Navbar() {
                 {cartCount}
               </span>
             )}
+          </NavLink>
+
+          <NavLink
+            to="/account"
+            className="rounded-full p-1.5 hover:text-amber-700 transition"
+            aria-label="Account"
+            title="Account"
+          >
+            <UserRound className="h-5 w-5 sm:h-6 sm:w-6" />
           </NavLink>
 
           <button
@@ -168,6 +209,7 @@ export default function Navbar() {
                 {item.name}
               </NavLink>
             ))}
+            {categoryLoadError && <p className="py-2 text-sm text-red-700" role="alert">Categories could not be loaded: {categoryLoadError}</p>}
           </div>
         </nav>
       )}

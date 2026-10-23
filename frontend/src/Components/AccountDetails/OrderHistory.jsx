@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { apiClient, buildApiUrl } from "../../services/api";
+import { apiClient, buildApiUrl, invalidateProductCache } from "../../services/api";
 import OrderCard from "../orders/OrderCard";
 import { useAuth } from "../../Context/AuthContext";
 
@@ -114,6 +114,7 @@ export default function OrderHistory() {
       }
       await refreshOrdersFromBackend();
       if (typeof window !== "undefined") {
+        invalidateProductCache();
         window.dispatchEvent(new Event("haierah-order-cancelled"));
         window.dispatchEvent(new Event("haierah-order-created"));
       }

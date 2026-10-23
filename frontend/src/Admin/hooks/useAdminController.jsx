@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiClient, invalidateProductCache } from '../../services/api';
+import { apiClient, invalidateCategoryCache, invalidateProductCache } from '../../services/api';
 import { loadInitialState, saveState } from '../utils/store.js';
 import { notifyCatalogChanged } from '../../utils/catalogSync.js';
 import { normalizeImageList } from '../../utils/productImages.js';
@@ -10,6 +10,7 @@ import { ProductsView } from '../components/ProductsView.jsx';
 import { OrdersView } from '../components/OrdersView.jsx';
 import { CMSView } from '../components/CMSView.jsx';
 import { AdminProfileView } from '../components/AdminProfileView.jsx';
+import SubcategoriesView from '../components/SubcategoriesView.jsx';
 import {
   CategoriesView,
   CustomersView,
@@ -172,7 +173,7 @@ export function useAdminController() {
 
         setState((prev) => ({
           ...prev,
-          products: serverProducts.length > 0 ? serverProducts : prev.products,
+          products: productsResult.status === 'fulfilled' ? serverProducts : prev.products,
           categories: serverCategories,
           orders: mergedOrders,
           customers: normalizedCustomers.length > 0 ? normalizedCustomers : prev.customers,
@@ -270,22 +271,19 @@ export function useAdminController() {
   };
 
   const handleAddProduct = async (prod) => {
-    const fallbackProduct = {
-      ...prod,
-      id: prod.id || `prod-local-${Date.now()}`,
-      createdAt: prod.createdAt || new Date().toISOString(),
-      status: 'Active'
-    };
-
     try {
       const formData = buildProductFormData(prod);
       const { data } = await apiClient.post('/api/admin/products', formData);
-      const savedProduct = data.product || fallbackProduct;
+      const savedProduct = data?.product;
+      if (!savedProduct) {
+        throw new Error('The backend returned an invalid product response.');
+      }
       const savedProductId = resolveProductIdentifier(savedProduct);
       setState((prev) => ({
         ...prev,
         products: [savedProduct, ...prev.products.filter((p) => resolveProductIdentifier(p) !== savedProductId)]
       }));
+      invalidateProductCache();
       if (typeof window !== 'undefined') {
         notifyCatalogChanged('product-created');
       }
@@ -293,39 +291,33 @@ export function useAdminController() {
       triggerToast(`Listing introduced: ${savedProduct.name}`);
     } catch (error) {
       console.error('Failed to save product:', error);
-      setState((prev) => ({
-        ...prev,
-        products: [fallbackProduct, ...prev.products.filter((p) => p.id !== fallbackProduct.id)]
-      }));
-      triggerToast(`Product saved locally while syncing with the backend.`);
-      alert(error?.response?.data?.message || error.message || 'Unable to save product to the backend. It was saved locally for now.');
+      triggerToast('Unable to save product to the backend.');
+      alert(error?.response?.data?.message || error.message || 'Unable to save product to the backend.');
     }
   };
 
   const handleUpdateProduct = async (prod) => {
-    const fallbackProduct = { ...prod };
-
     try {
       const formData = buildProductFormData(prod);
       const { data } = await apiClient.put(`/api/admin/products/${prod.id}`, formData);
-      const updatedProduct = data.product || fallbackProduct;
+      const updatedProduct = data?.product;
+      if (!updatedProduct) {
+        throw new Error('The backend returned an invalid product response.');
+      }
       const updatedProductId = resolveProductIdentifier(updatedProduct);
       setState((prev) => ({
         ...prev,
         products: prev.products.map((p) => (resolveProductIdentifier(p) === updatedProductId ? updatedProduct : p))
       }));
+      invalidateProductCache();
       if (typeof window !== 'undefined') {
         notifyCatalogChanged('product-updated');
       }
       addNotification(`Product updated: ${updatedProduct.name || prod.name}`);
     } catch (error) {
       console.error('Failed to update product:', error);
-      setState((prev) => ({
-        ...prev,
-        products: prev.products.map((p) => (p.id === fallbackProduct.id ? fallbackProduct : p))
-      }));
-      triggerToast(`Product updated locally while syncing with the backend.`);
-      alert(error?.response?.data?.message || error.message || 'Unable to update product in the backend. It was updated locally for now.');
+      triggerToast('Unable to update product in the backend.');
+      alert(error?.response?.data?.message || error.message || 'Unable to update product in the backend.');
     }
   };
 
@@ -336,6 +328,7 @@ export function useAdminController() {
         ...prev,
         products: prev.products.filter((p) => resolveProductIdentifier(p) !== id)
       }));
+      invalidateProductCache();
       if (typeof window !== 'undefined') {
         notifyCatalogChanged('product-deleted');
       }
@@ -348,6 +341,8 @@ export function useAdminController() {
           ...prev,
           products: prev.products.filter((p) => resolveProductIdentifier(p) !== id)
         }));
+        invalidateProductCache();
+        notifyCatalogChanged('product-deleted');
         triggerToast('Product removed from the catalog.');
         return;
       }
@@ -361,11 +356,25 @@ export function useAdminController() {
     const formData = new FormData();
     const safeCategory = { ...cat };
     const imageFile = safeCategory.imageFile;
+    const cards = Array.isArray(safeCategory.subCategoryCards) ? safeCategory.subCategoryCards : [];
     delete safeCategory.imageFile;
+    delete safeCategory.subCategoryCards;
 
     if (imageFile) {
       formData.append('image', imageFile);
     }
+
+    const subcategoryImages = [];
+    const subCategoryCards = cards.map((card) => {
+      const { imageFile: cardImageFile, ...cardData } = card;
+      if (cardImageFile) {
+        cardData.imageFileIndex = subcategoryImages.length;
+        subcategoryImages.push(cardImageFile);
+      }
+      return cardData;
+    });
+    formData.append('subCategoryCards', JSON.stringify(subCategoryCards));
+    subcategoryImages.forEach((file) => formData.append('subcategoryImages', file));
 
     Object.entries(safeCategory).forEach(([key, value]) => {
       if (value === undefined || value === null) {
@@ -390,6 +399,7 @@ export function useAdminController() {
         ...prev,
         categories: [savedCategory, ...prev.categories.filter((c) => c.id !== savedCategory.id)]
       }));
+      invalidateCategoryCache();
       addNotification(`Category added: ${savedCategory.name}`);
       triggerToast(`Category added: ${savedCategory.name}`);
     } catch (error) {
@@ -409,14 +419,20 @@ export function useAdminController() {
       const formData = buildCategoryFormData(categoryData);
       const { data } = await apiClient.put(`/api/admin/categories/${cat.id}`, formData);
       const updatedCategory = data.category;
+      if (!updatedCategory) {
+        throw new Error('The backend returned an invalid category response.');
+      }
       setState((prev) => ({
         ...prev,
         categories: prev.categories.map((c) => (c.id === updatedCategory.id ? updatedCategory : c))
       }));
+      invalidateCategoryCache();
       addNotification(`Category updated: ${updatedCategory.name || cat.name}`);
+      return true;
     } catch (error) {
       console.error('Failed to update category:', error);
       alert(error.response?.data?.message || error.message || 'Unable to update category in the backend.');
+      return false;
     }
   };
 
@@ -432,6 +448,7 @@ export function useAdminController() {
         ...prev,
         categories: prev.categories.filter((c) => c.id !== id)
       }));
+      invalidateCategoryCache();
       addNotification('Category removed from the catalog.');
     } catch (error) {
       console.error('Failed to delete category:', error);
@@ -479,11 +496,13 @@ export function useAdminController() {
 
       setState((prev) => ({
         ...prev,
-        products: refreshedProducts.length > 0 ? refreshedProducts : prev.products,
+        products: refreshedProducts,
         orders: prev.orders.map((o) => (o.id === updatedOrder.id ? updatedOrder : o))
       }));
 
       if (String(updatedOrder?.status || '').toLowerCase() === 'cancelled' || String(payload?.status || '').toLowerCase() === 'cancelled') {
+        invalidateProductCache();
+        notifyCatalogChanged('inventory-updated');
         if (typeof window !== 'undefined') {
           window.dispatchEvent(new Event('haierah-order-cancelled'));
         }
@@ -515,7 +534,10 @@ export function useAdminController() {
     try {
       const formData = buildProductFormData({ ...currentProduct, stock: nextStock });
       const { data } = await apiClient.put(`/api/admin/products/${id}`, formData);
-      const updatedProduct = data.product || { ...currentProduct, stock: nextStock };
+      const updatedProduct = data?.product;
+      if (!updatedProduct) {
+        throw new Error('The backend returned an invalid product response.');
+      }
 
       setState((prev) => ({
         ...prev,
@@ -525,9 +547,8 @@ export function useAdminController() {
         })
       }));
 
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new Event('haierah-products-updated'));
-      }
+      invalidateProductCache();
+      notifyCatalogChanged('inventory-updated');
 
       addNotification(`Stock updated for ${updatedProduct.name || currentProduct.name}`);
       triggerToast(`Stock updated for ${updatedProduct.name || currentProduct.name}`);
@@ -718,6 +739,13 @@ export function useAdminController() {
             onAddCategory={handleAddCategory}
             onUpdateCategory={handleUpdateCategory}
             onDeleteCategory={handleDeleteCategory}
+          />
+        );
+      case 'subcategories':
+        return (
+          <SubcategoriesView
+            categories={state.categories}
+            onUpdateCategory={handleUpdateCategory}
           />
         );
       case 'campaigns':

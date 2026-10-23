@@ -6,6 +6,7 @@ import cors from "cors";
 import mongoose from "mongoose";
 import connectDB from "./src/config/db.js";
 import seedDefaultAdmin from "./src/config/defaultAdmin.js";
+import ensureDefaultCategories from "./src/config/defaultCategories.js";
 import authRoutes from "./src/routes/authRoutes.js";
 import adminRoutes from "./src/routes/adminRoutes.js";
 import productRoutes from "./src/routes/productRoutes.js";
@@ -127,6 +128,7 @@ const initializeDatabase = async () => {
     try {
       await connectDB();
       await seedDefaultAdmin();
+      await ensureDefaultCategories();
       return;
     } catch (error) {
       console.error(

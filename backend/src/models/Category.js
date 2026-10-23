@@ -24,6 +24,18 @@ const categorySchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    subCategoryCards: {
+      type: [{
+        name: { type: String, required: true, trim: true },
+        subtitle: { type: String, default: '', trim: true },
+        image: { type: String, default: '' },
+      }],
+      default: [],
+    },
+    defaultCollectionsInitialized: {
+      type: Boolean,
+      default: false,
+    },
     image: {
       type: String,
       default: '',

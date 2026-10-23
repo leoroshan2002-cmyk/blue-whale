@@ -45,6 +45,7 @@ import BrandStory from "./Components/footer/BrandStory";
 import Sustainability from "./Components/footer/Sustainability";
 import Press from "./Components/footer/Press";
 import StoreLocator from "./Components/footer/StoreLocator";
+import Footer from "./Components/Footer";
 
 const App = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -84,8 +85,8 @@ const App = () => {
 
           <Routes>
             {/* PUBLIC ROUTES */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
+            <Route path="/login" element={<><Login /><Footer /></>} />
+            <Route path="/register" element={<><Register /><Footer /></>} />
 
             {/* /home is kept as an alias of the main Home page */}
             <Route path="/home" element={<Navigate to="/" replace />} />
@@ -146,7 +147,7 @@ const App = () => {
             </Route>
 
             {/* NOT FOUND */}
-            <Route path="*" element={<NotFound />} />
+            <Route path="*" element={<><NotFound /><Footer /></>} />
           </Routes>
         </Router>
       </div>

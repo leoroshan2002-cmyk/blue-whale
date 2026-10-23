@@ -312,7 +312,12 @@
   gap: 21px;
 }
 
+.men-product-media {
+ position: relative;
+}
+
 .men-product__img {
+  display: block;
   position: relative;
   aspect-ratio: 422 / 429;
 }

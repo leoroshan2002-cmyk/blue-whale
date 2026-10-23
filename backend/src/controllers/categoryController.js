@@ -72,6 +72,28 @@ const normalizeCategoryPayload = (payload) => {
     .map((item) => String(item).trim())
     .filter(Boolean);
 
+  if (typeof payload.subCategoryCards === 'string') {
+    try {
+      payload.subCategoryCards = JSON.parse(payload.subCategoryCards);
+    } catch {
+      payload.subCategoryCards = [];
+    }
+  }
+  if (!Array.isArray(payload.subCategoryCards)) payload.subCategoryCards = [];
+  payload.subCategoryCards = payload.subCategoryCards
+    .filter((card) => card && typeof card === 'object' && !Array.isArray(card))
+    .map((card) => ({
+      name: String(card.name || '').trim(),
+      subtitle: String(card.subtitle || '').trim(),
+      image: String(card.image || '').trim(),
+      imageFileIndex: Number.isInteger(Number(card.imageFileIndex)) ? Number(card.imageFileIndex) : null,
+    }))
+    .filter((card) => card.name);
+  payload.subCategories = Array.from(new Set([
+    ...payload.subCategories,
+    ...payload.subCategoryCards.map((card) => card.name),
+  ]));
+
   if (!payload.subCategory || typeof payload.subCategory !== 'string' || !payload.subCategory.trim()) {
     payload.subCategory = payload.subCategories[0] || '';
   } else {
@@ -81,14 +103,35 @@ const normalizeCategoryPayload = (payload) => {
   return payload;
 };
 
+const applySubcategoryImages = async (payload, files = []) => {
+  const cards = payload.subCategoryCards || [];
+  for (const card of cards) {
+    const file = card.imageFileIndex === null ? null : files[card.imageFileIndex];
+    if (file) {
+      const uploaded = await uploadToCloudinary(file, 'categories/subcategories');
+      card.image = uploaded.secure_url;
+    }
+    delete card.imageFileIndex;
+  }
+};
+
 export const createCategory = async (req, res) => {
   try {
     const payload = normalizeCategoryPayload({ ...req.body });
-    if (req.file) {
+    const files = req.files || {};
+    if (files.image?.[0]) {
       try {
-        const cloudinaryResult = await uploadToCloudinary(req.file);
+        const cloudinaryResult = await uploadToCloudinary(files.image[0]);
         payload.image = cloudinaryResult.secure_url;
         payload.cloudinaryPublicId = cloudinaryResult.public_id;
+        await applySubcategoryImages(payload, files.subcategoryImages || []);
+      } catch (uploadError) {
+        console.error('Cloudinary upload error:', uploadError);
+        return res.status(500).json({ message: 'Image upload failed', error: uploadError.message });
+      }
+    } else {
+      try {
+        await applySubcategoryImages(payload, files.subcategoryImages || []);
       } catch (uploadError) {
         console.error('Cloudinary upload error:', uploadError);
         return res.status(500).json({ message: 'Image upload failed', error: uploadError.message });
@@ -109,21 +152,33 @@ export const updateCategory = async (req, res) => {
     }
 
     const payload = normalizeCategoryPayload({ ...req.body });
+    const files = req.files || {};
     
-    if (req.file) {
+    if (files.image?.[0] || files.subcategoryImages?.length) {
       try {
-        const cloudinaryResult = await uploadToCloudinary(req.file);
-        payload.image = cloudinaryResult.secure_url;
-        payload.cloudinaryPublicId = cloudinaryResult.public_id;
+        if (files.image?.[0]) {
+          const cloudinaryResult = await uploadToCloudinary(files.image[0]);
+          payload.image = cloudinaryResult.secure_url;
+          payload.cloudinaryPublicId = cloudinaryResult.public_id;
+        }
+        await applySubcategoryImages(payload, files.subcategoryImages || []);
         
         // Delete old image from Cloudinary if it exists
         const existingCategory = await Category.findById(id);
-        if (existingCategory && existingCategory.cloudinaryPublicId) {
+        if (files.image?.[0] && existingCategory?.cloudinaryPublicId) {
           await cloudinary.uploader.destroy(existingCategory.cloudinaryPublicId);
         }
       } catch (uploadError) {
         console.error('Cloudinary upload error:', uploadError);
         return res.status(500).json({ message: 'Image upload failed', error: uploadError.message });
+      }
+
+      if (!files.image?.[0]) {
+        const existingCategory = await Category.findById(id).select('image cloudinaryPublicId');
+        if (existingCategory) {
+          payload.image = existingCategory.image;
+          payload.cloudinaryPublicId = existingCategory.cloudinaryPublicId;
+        }
       }
     }
     

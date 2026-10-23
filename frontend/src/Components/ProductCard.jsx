@@ -44,10 +44,12 @@ const ProductCard = ({
 
             </div>
 
-            <span className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full border border-orange-100 bg-[#fff8f1] px-2 py-1.5 text-[10px] font-medium text-[#343434] sm:right-5 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
+            {product.rating && (
+                <span className="absolute right-3 top-3 z-20 flex items-center gap-1 rounded-full border border-orange-100 bg-[#fff8f1] px-2 py-1.5 text-[10px] font-medium text-[#343434] sm:right-5 sm:top-4 sm:px-3 sm:py-2 sm:text-xs">
                     <Star className="h-3 w-3 fill-amber-400 text-amber-400 sm:h-3.5 sm:w-3.5" />
-                    {product.rating || "4.8"}
-            </span>
+                    {product.rating}
+                </span>
+            )}
 
             <Link to={`/product/${product.id}`} className="block">
                 <div className="relative mt-1 h-[180px] overflow-hidden sm:h-[265px]">

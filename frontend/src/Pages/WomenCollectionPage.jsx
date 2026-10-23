@@ -7,7 +7,7 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useCart } from "../Context/CartContext";
 import { useWishlist } from "../Context/WhislistContext";
 import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
-import { fetchProducts } from "../services/api";
+import { fetchCategories, fetchProducts } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
 import { DEFAULT_IMAGE_FALLBACK, getSafeImageUrl, normalizeImageList } from "../utils/productImages";
 import { isSareeProduct } from "../utils/sareeFilters";
@@ -22,14 +22,6 @@ import darkPinkImg from "../assets/home/dark-pink.jpeg";
 import "../women-collection.css";
 
 gsap.registerPlugin(ScrollTrigger);
-
-const COLLECTIONS = [
-  { title: "Traditional Sarees", subtitle: "TIMELESS INDIAN ELEGANCE", image: pinkImg, category: "Traditional Sarees" },
-  { title: "Printed Sarees", subtitle: "ARTISTRY IN EVERY PRINT", image: darkPinkImg, category: "Printed Sarees" },
-  { title: "Traditional Silk Sarees", subtitle: "LUXURY IN EVERY DRAPE", image: goldImg, category: "Traditional Silk Sarees" },
-  { title: "Woven & Zari Sarees", subtitle: "HERITAGE WOVEN IN GOLD", image: redImg, category: "Woven & Zari Sarees" },
-  { title: "Floral Printed Sarees", subtitle: "FRESH FLORALS, GRACEFUL DRAPES", image: whiteImg, category: "Floral Printed Sarees" },
-];
 
 const DETAIL_IMAGES = [
   { label: "Zari Work", image: redImg },
@@ -86,6 +78,8 @@ export default function WomenCollectionPage() {
   const location = useLocation();
   const [products, setProducts] = useState([]);
   const [productsError, setProductsError] = useState("");
+  const [collections, setCollections] = useState([]);
+  const [collectionsError, setCollectionsError] = useState("");
   const { addToCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const { requireAuthAction } = useRequireAuthAction();
@@ -98,6 +92,31 @@ export default function WomenCollectionPage() {
   useEffect(() => {
     document.title = "Women — Blue Whale Collection | Timeless Sarees";
     return () => { document.title = "Blue Whale Collection"; };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCollections = async () => {
+      try {
+        const categories = await fetchCategories();
+        if (cancelled) return;
+        const womenCategory = categories.find((category) => category.slug === "women" || category.name?.toLowerCase() === "women");
+        setCollections(womenCategory?.subCategoryCards || []);
+        setCollectionsError("");
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load women's collections:", error);
+          setCollections([]);
+          setCollectionsError(error?.response?.data?.message || error?.message || "Unable to load collections.");
+        }
+      }
+    };
+    loadCollections();
+    const unsubscribe = subscribeToCatalogChanges(loadCollections);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -226,13 +245,14 @@ export default function WomenCollectionPage() {
           <Link to="/products?category=women" className="wc-view-all">VIEW ALL <Arrow /></Link>
         </div>
         <div className="wc-collection-grid">
-          {COLLECTIONS.map((item) => (
-            <Link to={`/products?category=women&subcategory=${encodeURIComponent(item.category)}`} className="wc-collection-card" key={item.title} data-wc-reveal>
-              <img src={item.image} alt={item.title} loading="lazy" />
+          {collections.map((item) => (
+            <Link to={`/products?category=women&subcategory=${encodeURIComponent(item.name)}`} className="wc-collection-card" key={item.name} data-wc-reveal>
+              <img src={getSafeImageUrl(item.image, DEFAULT_IMAGE_FALLBACK)} alt={item.name} loading="lazy" onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }} />
               <div className="wc-card-shade" />
-              <div className="wc-card-copy"><h3>{item.title}</h3><p>{item.subtitle}</p><span><Arrow /></span></div>
+              <div className="wc-card-copy"><h3>{item.name}</h3><p>{item.subtitle}</p><span><Arrow /></span></div>
             </Link>
           ))}
+          {collectionsError && <p role="alert">{collectionsError}</p>}
         </div>
       </section>
 

@@ -1,10 +1,19 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useLocation } from "react-router-dom";
 import "./men-products.css";
-import { menProducts, COLOURS, CATEGORY_LIST, FABRICS, OCCASIONS } from "./menProducts";
+import { fetchCategories, fetchProducts } from "../services/api";
+import { subscribeToCatalogChanges } from "../utils/catalogSync";
+import { DEFAULT_IMAGE_FALLBACK, getSafeImageUrl } from "../utils/productImages";
+import { useCart } from "../Context/CartContext";
+import { useWishlist } from "../Context/WhislistContext";
+import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
 
 const MAX_PRICE = 20000;
 const inr = (n) => "₹" + n.toLocaleString("en-IN");
+const productPrice = (product) => Number(product.discountPrice ?? product.salePrice ?? product.price ?? 0);
+const productColors = (product) => product.colors || product.variants?.colors || [];
+const colorName = (color) => typeof color === "string" ? color : color?.name || color?.value || color?.hex || "";
+const colorValue = (color) => typeof color === "string" ? color : color?.hex || color?.value || "";
 
 const Stars = ({ value }) => (
   <span className="mp-stars" aria-label={`${value} out of 5`}>
@@ -27,49 +36,124 @@ function FilterGroup({ title, children }) {
 }
 
 export default function MenProductsPage() {
-  const [category, setCategory] = useState("All Products");
-  const [maxPrice, setMaxPrice] = useState(MAX_PRICE);
+  const { search } = useLocation();
+  const requestedCategory = new URLSearchParams(search).get("subcategory") || "All Products";
+  const [category, setCategory] = useState(requestedCategory);
+  const [maxPrice, setMaxPrice] = useState(null);
   const [fabrics, setFabrics] = useState([]);
   const [colours, setColours] = useState([]);
-  const [occasions, setOccasions] = useState([]);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sort, setSort] = useState("featured");
   const [view, setView] = useState("grid");
-  const [liked, setLiked] = useState({});
-  const [cart, setCart] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [managedSubcategories, setManagedSubcategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const { addToCart } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { requireAuthAction } = useRequireAuthAction();
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      setLoading(true);
+      try {
+        const allProducts = await fetchProducts();
+        if (cancelled) return;
+        setProducts(allProducts.filter((product) => String(product.category || "").trim().toLowerCase() === "men"));
+        setLoadError("");
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to load men's products:", error);
+        setProducts([]);
+        setLoadError(error?.response?.data?.message || error?.message || "Unable to load products.");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    load();
+    const unsubscribe = subscribeToCatalogChanges(load);
+    window.addEventListener("haierah-products-updated", load);
+    window.addEventListener("haierah-order-created", load);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+      window.removeEventListener("haierah-products-updated", load);
+      window.removeEventListener("haierah-order-created", load);
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadCategories = async () => {
+      try {
+        const categories = await fetchCategories();
+        if (!cancelled) {
+          const menCategory = categories.find((item) => item.slug === "men" || item.name?.toLowerCase() === "men");
+          setManagedSubcategories([...new Set([
+            ...(menCategory?.subCategories || []),
+            ...(menCategory?.subCategoryCards || []).map((card) => card.name),
+          ])]);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Failed to load men's subcategories:", error);
+        }
+      }
+    };
+    loadCategories();
+    const unsubscribe = subscribeToCatalogChanges(loadCategories);
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
 
   const toggle = (list, setList, v) =>
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
-  const counts = (key) => (v) => menProducts.filter((p) => p[key] === v).length;
+  const categoryList = useMemo(() => {
+    const fromProducts = products.map((p) => p.subCategory || p.subcategory).filter(Boolean);
+    return [...new Set([...managedSubcategories, ...fromProducts])];
+  }, [managedSubcategories, products]);
+  const fabricList = useMemo(() => [...new Set(products.map((p) => p.material || p.fabric).filter(Boolean))], [products]);
+  const colourList = useMemo(() => {
+    const values = products.flatMap(productColors).filter(Boolean);
+    return [...new Map(values.map((color) => [colorName(color), color])).values()];
+  }, [products]);
+  const sliderMax = useMemo(() => Math.max(MAX_PRICE, Math.ceil(Math.max(0, ...products.map(productPrice)) / 1000) * 1000), [products]);
+  const priceLimit = maxPrice ?? sliderMax;
+  const counts = (value) => products.filter((product) => (product.subCategory || product.subcategory) === value).length;
 
   const visible = useMemo(() => {
-    let list = menProducts.filter(
+    let list = products.filter(
       (p) =>
-        (category === "All Products" || p.category === category) &&
-        p.price <= maxPrice &&
-        (!fabrics.length || fabrics.includes(p.fabric)) &&
-        (!colours.length || colours.includes(p.colour)) &&
-        (!occasions.length || p.occasion.some((o) => occasions.includes(o))) &&
-        (!inStockOnly || p.inStock)
+        (category === "All Products" || (p.subCategory || p.subcategory) === category) &&
+        productPrice(p) <= priceLimit &&
+        (!fabrics.length || fabrics.includes(p.material || p.fabric)) &&
+        (!colours.length || productColors(p).some((color) => colours.includes(colorName(color)))) &&
+        (!inStockOnly || Number(p.stock) > 0)
     );
     const sorters = {
-      "price-asc": (a, b) => a.price - b.price,
-      "price-desc": (a, b) => b.price - a.price,
-      rating: (a, b) => b.rating - a.rating,
-      popular: (a, b) => b.reviews - a.reviews,
+      "price-asc": (a, b) => productPrice(a) - productPrice(b),
+      "price-desc": (a, b) => productPrice(b) - productPrice(a),
+      name: (a, b) => String(a.name).localeCompare(String(b.name)),
     };
     if (sorters[sort]) list = [...list].sort(sorters[sort]);
     return list;
-  }, [category, maxPrice, fabrics, colours, occasions, inStockOnly, sort]);
+  }, [products, category, priceLimit, fabrics, colours, inStockOnly, sort]);
 
   const clearAll = () => {
-    setCategory("All Products"); setMaxPrice(MAX_PRICE); setFabrics([]);
-    setColours([]); setOccasions([]); setInStockOnly(false);
+    setCategory("All Products"); setMaxPrice(null); setFabrics([]);
+    setColours([]); setInStockOnly(false);
   };
 
-  // Replace with your real cart logic (context / redux / API)
-  const addToCart = (p) => setCart((c) => [...c, p]);
+  const handleWishlist = (product) => {
+    if (requireAuthAction("toggleWishlist", product)) toggleWishlist(product);
+  };
+  const handleAddToCart = (product) => {
+    if (requireAuthAction("addToCart", product)) addToCart(product);
+  };
 
   return (
     <main className="mp-page">
@@ -87,11 +171,11 @@ export default function MenProductsPage() {
         <aside className="mp-side">
           <FilterGroup title="Categories">
             <ul className="mp-cats">
-              {["All Products", ...CATEGORY_LIST].map((c) => (
+              {["All Products", ...categoryList].map((c) => (
                 <li key={c}>
                   <button className={category === c ? "active" : ""} onClick={() => setCategory(c)}>
                     <span>{c}</span>
-                    <small>({c === "All Products" ? menProducts.length : counts("category")(c)})</small>
+                    <small>({c === "All Products" ? products.length : counts(c)})</small>
                   </button>
                 </li>
               ))}
@@ -100,41 +184,32 @@ export default function MenProductsPage() {
 
           <FilterGroup title="Price range">
             <input
-              type="range" min="0" max={MAX_PRICE} step="500" value={maxPrice}
+              type="range" min="0" max={sliderMax} step="500" value={priceLimit}
               onChange={(e) => setMaxPrice(+e.target.value)}
               className="mp-range" aria-label="Maximum price"
             />
-            <div className="mp-range__labels"><span>₹0</span><span>{maxPrice >= MAX_PRICE ? "₹20,000+" : inr(maxPrice)}</span></div>
+            <div className="mp-range__labels"><span>₹0</span><span>{inr(priceLimit)}</span></div>
           </FilterGroup>
 
           <FilterGroup title="Fabric type">
-            {FABRICS.map((f) => (
+            {fabricList.map((f) => (
               <label key={f} className="mp-check">
                 <input type="checkbox" checked={fabrics.includes(f)} onChange={() => toggle(fabrics, setFabrics, f)} />
-                {f} <small>({counts("fabric")(f)})</small>
+                {f}
               </label>
             ))}
           </FilterGroup>
 
           <FilterGroup title="Colour">
             <div className="mp-swatches">
-              {Object.entries(COLOURS).map(([name, hex]) => (
+              {colourList.map((color) => (
                 <button
-                  key={name} title={name} aria-label={name} aria-pressed={colours.includes(name)}
-                  className={colours.includes(name) ? "on" : ""} style={{ background: hex }}
-                  onClick={() => toggle(colours, setColours, name)}
+                  key={colorName(color)} title={colorName(color)} aria-label={colorName(color)} aria-pressed={colours.includes(colorName(color))}
+                  className={colours.includes(colorName(color)) ? "on" : ""} style={{ background: colorValue(color) || "#d8c8b5" }}
+                  onClick={() => toggle(colours, setColours, colorName(color))}
                 />
               ))}
             </div>
-          </FilterGroup>
-
-          <FilterGroup title="Occasion">
-            {OCCASIONS.map((o) => (
-              <label key={o} className="mp-check">
-                <input type="checkbox" checked={occasions.includes(o)} onChange={() => toggle(occasions, setOccasions, o)} />
-                {o} <small>({menProducts.filter((p) => p.occasion.includes(o)).length})</small>
-              </label>
-            ))}
           </FilterGroup>
 
           <FilterGroup title="Availability">
@@ -150,16 +225,15 @@ export default function MenProductsPage() {
         {/* RESULTS */}
         <section className="mp-results">
           <div className="mp-toolbar">
-            <strong>{visible.length} Products</strong>
+            <strong>{loading ? "Loading products…" : `${visible.length} Products`}</strong>
             <div className="mp-toolbar__right">
               <label>
                 Sort By:
                 <select value={sort} onChange={(e) => setSort(e.target.value)}>
                   <option value="featured">Featured</option>
-                  <option value="popular">Most Popular</option>
-                  <option value="rating">Top Rated</option>
                   <option value="price-asc">Price: Low to High</option>
                   <option value="price-desc">Price: High to Low</option>
+                  <option value="name">Name</option>
                 </select>
               </label>
               <button className={view === "grid" ? "on" : ""} onClick={() => setView("grid")} aria-label="Grid view">▦</button>
@@ -167,35 +241,45 @@ export default function MenProductsPage() {
             </div>
           </div>
 
-          {visible.length === 0 ? (
+          {loadError ? (
+            <div className="mp-empty" role="alert">{loadError}</div>
+          ) : loading ? (
+            <div className="mp-empty" aria-live="polite">Loading products…</div>
+          ) : visible.length === 0 ? (
             <div className="mp-empty">
-              <p>No veshtis match these filters.</p>
+              <p>No products match these filters.</p>
               <button onClick={clearAll}>Clear all filters</button>
             </div>
           ) : (
             <div className={`mp-grid ${view}`}>
               {visible.map((p) => {
-                const off = p.mrp ? Math.round(((p.mrp - p.price) / p.mrp) * 100) : 0;
+                const price = productPrice(p);
+                const originalPrice = Number(p.price || 0);
+                const off = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
+                const image = getSafeImageUrl(p.images?.[0] || p.image, DEFAULT_IMAGE_FALLBACK);
+                const id = p.id || p._id;
                 return (
-                  <article key={p.id} className="mp-card">
-                    <div className="mp-card__img" style={{ backgroundImage: `url(${p.img})` }}>
-                      {p.badge && <span className="mp-badge">{p.badge}</span>}
+                  <article key={id} className="mp-card">
+                    <div className="mp-card__img">
+                      <Link to={`/product/${id}`} className="mp-product-image-link" aria-label={`View ${p.name}`}>
+                        <img src={image} alt={p.name} loading="lazy" onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }} />
+                      </Link>
                       {!p.badge && off > 0 && <span className="mp-badge off">{off}% OFF</span>}
                       <button
-                        className={`mp-heart ${liked[p.id] ? "on" : ""}`}
-                        onClick={() => setLiked((l) => ({ ...l, [p.id]: !l[p.id] }))}
-                        aria-label={liked[p.id] ? "Remove from wishlist" : "Add to wishlist"}
-                      >{liked[p.id] ? "♥" : "♡"}</button>
+                        className={`mp-heart ${isWishlisted(id) ? "on" : ""}`}
+                        onClick={() => handleWishlist(p)}
+                        aria-label={isWishlisted(id) ? "Remove from wishlist" : "Add to wishlist"}
+                      >{isWishlisted(id) ? "♥" : "♡"}</button>
                     </div>
                     <div className="mp-card__body">
-                      <h3>{p.name}</h3>
-                      <div className="mp-rate"><Stars value={p.rating} /> <small>({p.reviews})</small></div>
+                      <Link to={`/product/${id}`}><h3>{p.name}</h3></Link>
+                      {p.rating && <div className="mp-rate"><Stars value={p.rating} /> {p.reviews && <small>({p.reviews})</small>}</div>}
                       <div className="mp-price">
-                        <b>{inr(p.price)}</b>
-                        {p.mrp && <><s>M.R.P. {inr(p.mrp)}</s><em>{off}% OFF</em></>}
+                        <b>{inr(price)}</b>
+                        {off > 0 && <><s>M.R.P. {inr(originalPrice)}</s><em>{off}% OFF</em></>}
                       </div>
-                      <button className="mp-add" disabled={!p.inStock} onClick={() => addToCart(p)}>
-                        {p.inStock ? "🛒 Add to Cart" : "Out of Stock"}
+                      <button className="mp-add" disabled={Number(p.stock) <= 0} onClick={() => handleAddToCart(p)}>
+                        {Number(p.stock) > 0 ? "🛒 Add to Cart" : "Out of Stock"}
                       </button>
                     </div>
                   </article>

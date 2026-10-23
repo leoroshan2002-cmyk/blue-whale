@@ -1,43 +1,15 @@
-import React, { useEffect, useRef } from "react";
+import React, { useRef } from "react";
 import { motion } from "framer-motion";
-import gsap from "gsap";
 
-import WishlistHeader from "./WishlistDetails/WishlistHeader";
-import WishlistGrid from "./WishlistDetails/WishlistGrid";
 import CompleteLook from "./WishlistDetails/CompleteLook";
 import EmptyWishlist from "./WishlistDetails/EmpltWishlist";
 import {
     X,
     Share2,
     ShoppingBag,
-    Heart,
 } from "lucide-react";
 import { useWishlist } from "../Context/WhislistContext";
 import { useCart } from "../Context/CartContext";
-
-const recommendations = [
-    {
-        id: 101,
-        name: "Structured Blazer",
-        price: 14500,
-        image:
-            "https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=500",
-    },
-    {
-        id: 102,
-        name: "Slip Skirt",
-        price: 7800,
-        image:
-            "https://images.unsplash.com/photo-1583496661160-fb5886a0aaaa?w=500",
-    },
-    {
-        id: 103,
-        name: "Minimal Belt",
-        price: 3200,
-        image:
-            "https://images.unsplash.com/photo-1624222247344-550fb60583dc?w=500",
-    },
-];
 
 export default function Wishlist() {
     const { wishlist, removeFromWishlist } = useWishlist();
@@ -167,53 +139,7 @@ export default function Wishlist() {
 
                     </div>
 
-                    {/* Complete Look */}
-
-                    <div className="mt-24">
-
-                        <h2 className="text-5xl font-serif mb-3">
-                            Complete the Look
-                        </h2>
-
-                        <p className="text-gray-500 mb-10">
-                            Lifestyle product suggestions
-                        </p>
-
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-
-                            {recommendations.map((item) => (
-
-                                <motion.div
-                                    key={item.id}
-                                    whileHover={{ y: -5 }}
-                                    className="group cursor-pointer"
-                                >
-
-                                    <div className="overflow-hidden rounded-xl">
-
-                                        <img
-                                            src={item.image}
-                                            alt={item.name}
-                                            className="w-full h-72 object-cover group-hover:scale-105 duration-500"
-                                        />
-
-                                    </div>
-
-                                    <h3 className="mt-3 text-2xl font-serif">
-                                        {item.name}
-                                    </h3>
-
-                                    <p className="font-medium">
-                                        ₹{item.price}
-                                    </p>
-
-                                </motion.div>
-
-                            ))}
-
-                        </div>
-
-                    </div>
+                    <CompleteLook />
                 </>
             )}
         </div>

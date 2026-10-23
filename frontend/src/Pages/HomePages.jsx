@@ -6,7 +6,6 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { fetchProducts } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
 
-import HomeFooter from "../Components/home/HomeFooter";
 import "../home.css";
 
 import heroCouple from "../assets/home/reference/HomeHero.png";
@@ -538,8 +537,6 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <HomeFooter />
     </main>
   );
 }

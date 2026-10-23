@@ -10,7 +10,6 @@ import { fetchProducts, fetchCategories } from "../services/api";
 import { normalizeSearchText } from "../utils/searchUtils";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
 import HaierahStandard from "../Components/HaierahStandard";
-import Footer from "../Components/Footer";
 import CampaignSlider from "../Components/CampaignSlider";
 import PromoGrid from "../Components/PromoGrid";
 
@@ -86,11 +85,17 @@ export default function CategoryPage() {
 
   const normalizeValue = (value) => normalizeSearchText(value);
   const getProductSubcategories = (product) => {
-    if (Array.isArray(product.subCategories)) return product.subCategories.filter(Boolean);
-    if (Array.isArray(product.subCategory)) return product.subCategory.filter(Boolean);
-    return [product.subCategory].filter(Boolean);
+    const values = [
+      ...(Array.isArray(product.subCategories) ? product.subCategories : []),
+      ...(Array.isArray(product.subCategory) ? product.subCategory : [product.subCategory]),
+    ];
+    return [...new Set(values.filter(Boolean))];
   };
-  const availableSubcategories = category ? (Array.isArray(category.subCategories) ? category.subCategories : [category.subCategory].filter(Boolean)) : [];
+  const availableSubcategories = category ? [...new Set([
+    ...(Array.isArray(category.subCategories) ? category.subCategories : []),
+    ...(Array.isArray(category.subCategoryCards) ? category.subCategoryCards.map((card) => card.name) : []),
+    category.subCategory,
+  ].filter(Boolean))] : [];
   const filteredProducts = category ? products.filter((product) => {
     const productCategory = normalizeValue(product.category);
     const matchesCategory = productCategory === normalizeValue(category.name) || productCategory === normalizeValue(category.slug);
@@ -125,7 +130,7 @@ export default function CategoryPage() {
       <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="mx-auto mt-8 max-w-[1440px] px-4 sm:mt-12 sm:px-8 lg:px-12">
         {/* <PromoGrid category={category.slug} variant="bottom" /> */}
         </motion.div>
-      <HaierahStandard /><Footer />
+      <HaierahStandard />
     </motion.div>
   );
 }

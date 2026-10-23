@@ -10,8 +10,13 @@ import {
 const router = express.Router();
 
 router.get('/', listCategories);
-router.post('/', upload.single('image'), createCategory);
-router.put('/:id', upload.single('image'), updateCategory);
+const categoryImages = upload.fields([
+  { name: 'image', maxCount: 1 },
+  { name: 'subcategoryImages', maxCount: 10 },
+]);
+
+router.post('/', categoryImages, createCategory);
+router.put('/:id', categoryImages, updateCategory);
 router.delete('/:id', deleteCategory);
 
 export default router;

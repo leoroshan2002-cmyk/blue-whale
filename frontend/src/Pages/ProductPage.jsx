@@ -7,7 +7,6 @@ import { useWishlist } from "../Context/WhislistContext";
 import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
 import { fetchProductById, fetchProducts } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
-import { getRelatedSarees } from "../utils/sareeFilters";
 import { DEFAULT_IMAGE_FALLBACK, getSafeImageUrl, normalizeImageList } from "../utils/productImages";
 import ProductCard from "../Components/ProductCard";
 import "./saree-shop.css";
@@ -64,7 +63,10 @@ export default function ProductPage() {
   const price = Number(product?.discountPrice ?? product?.salePrice ?? product?.price ?? 0);
   const originalPrice = Number(product?.originalPrice ?? product?.compareAtPrice ?? product?.price ?? 0);
   const discount = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
-  const related = useMemo(() => getRelatedSarees(product, catalog, 4), [catalog, product]);
+  const related = useMemo(() => catalog
+    .filter((item) => (item.id || item._id) !== (product?.id || product?._id)
+      && String(item.category || "").toLowerCase() === String(product?.category || "").toLowerCase())
+    .slice(0, 4), [catalog, product]);
 
   if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>{isLoading ? "Finding your piece…" : productError ? "Product could not be loaded" : "Product not found"}</h2><p>{productError || "This product may no longer be available."}</p><Link to="/products?category=women">Back to collection</Link></div></main>;
 
@@ -80,7 +82,7 @@ export default function ProductPage() {
   const categoryPath = `/products?category=${encodeURIComponent(String(product.category || "women").toLowerCase())}${product.subCategory || product.subcategory ? `&subcategory=${encodeURIComponent(product.subCategory || product.subcategory)}` : ""}`;
 
   return <main className="bw-product-page">
-    <div className="bw-product-breadcrumb"><Link to={categoryPath}><ArrowLeft size={15}/> Back to collection</Link><span>BLUE WHALE / THE SAREE EDIT / {product.name}</span></div>
+    <div className="bw-product-breadcrumb"><Link to={categoryPath}><ArrowLeft size={15}/> Back to collection</Link><span>BLUE WHALE / {product.category || "COLLECTION"} / {product.name}</span></div>
     <section className="bw-product-detail">
       <motion.div className="bw-product-gallery" initial={{opacity:0,x:-28}} animate={{opacity:1,x:0}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
         <div className="bw-product-main-image"><img key={images[selectedImage] || product.image} src={getSafeImageUrl(images[selectedImage] || product.image, DEFAULT_IMAGE_FALLBACK)} alt={product.name} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/><span className="bw-image-caption">CRAFTED WITH CARE · BLUE WHALE</span>{discount > 0 && <span className="bw-discount-tag">-{discount}%</span>}</div>
@@ -90,11 +92,11 @@ export default function ProductPage() {
       <motion.div className="bw-product-info" initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.8,delay:.12,ease:[.22,1,.36,1]}}>
         <p className="bw-eyebrow bw-eyebrow-dark">{product.brand || "BLUE WHALE COLLECTION"}</p>
         <h1>{product.name}</h1>
-        <div className="bw-product-rating"><span className="bw-stars"><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/><Star size={14} fill="currentColor"/></span><span>{product.rating || "4.8"}</span><span className="bw-muted">({product.reviews || product.reviewCount || "Customer"} reviews)</span></div>
+        {product.rating && <div className="bw-product-rating"><span className="bw-stars">{Array.from({ length: 5 }, (_, index) => <Star key={index} size={14} fill={Number(product.rating) >= index + 1 ? "currentColor" : "none"} />)}</span><span>{product.rating}</span>{(product.reviews || product.reviewCount) && <span className="bw-muted">({product.reviews || product.reviewCount} reviews)</span>}</div>}
         <div className="bw-product-price"><strong>₹{price.toLocaleString("en-IN")}</strong>{discount>0&&<><del>₹{originalPrice.toLocaleString("en-IN")}</del><span>{discount}% off</span></>}</div>
         <p className="bw-product-tax">Inclusive of all taxes · Shipping calculated at checkout</p>
         <div className="bw-product-divider"/>
-        <p className="bw-product-description">{product.description || `A beautiful ${product.material || "crafted"} piece from Blue Whale, selected for its timeless colour, graceful drape and thoughtful detailing.`}</p>
+        {product.description && <p className="bw-product-description">{product.description}</p>}
         <div className="bw-product-specs">{(product.material || product.fabric) && <div><span>FABRIC</span><strong>{product.material || product.fabric}</strong></div>}{(product.category || product.subCategory || product.subcategory) && <div><span>COLLECTION</span><strong>{product.subCategory || product.subcategory || product.category}</strong></div>}{product.sku && <div><span>PRODUCT CODE</span><strong>{product.sku}</strong></div>}</div>
         {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>{setSelectedColor(index);if(images[index])setSelectedImage(index);}}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
         {Array.isArray(product.sizes)&&product.sizes.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>SIZE</span><button type="button" className="bw-size-help" onClick={()=>window.alert("Sarees are generally one-size drapes. Please check the product details for blouse-piece information.")}>Size guide</button></div><div className="bw-size-options">{product.sizes.map((size)=><span key={size}>{size}</span>)}</div></div>}

@@ -1,5 +1,4 @@
 import {
-  INITIAL_PRODUCTS,
   INITIAL_CATEGORIES,
   INITIAL_CUSTOMERS,
   INITIAL_ORDERS,
@@ -10,7 +9,6 @@ import {
 // Storage keys
 const KEY_PREFIX = 'hyra_shopify_admin_';
 const KEYS = {
-  PRODUCTS: `${KEY_PREFIX}products`,
   CATEGORIES: `${KEY_PREFIX}categories`,
   CUSTOMERS: `${KEY_PREFIX}customers`,
   ORDERS: `${KEY_PREFIX}orders`,
@@ -64,12 +62,8 @@ function setStored(key, value) {
 }
 
 export function loadInitialState() {
-  const storedProducts = getStored(KEYS.PRODUCTS, INITIAL_PRODUCTS);
-
   return {
-    products: Array.isArray(storedProducts)
-      ? storedProducts.filter((product) => product && product.id && product.name)
-      : [],
+    products: [],
     categories: getStored(KEYS.CATEGORIES, INITIAL_CATEGORIES),
     customers: getStored(KEYS.CUSTOMERS, INITIAL_CUSTOMERS),
     orders: getStored(KEYS.ORDERS, INITIAL_ORDERS),
@@ -80,7 +74,6 @@ export function loadInitialState() {
 }
 
 export function saveState(state) {
-  setStored(KEYS.PRODUCTS, sanitizeForStorage(state.products));
   setStored(KEYS.CATEGORIES, sanitizeForStorage(state.categories));
   setStored(KEYS.CUSTOMERS, sanitizeForStorage(state.customers));
   setStored(KEYS.ORDERS, sanitizeForStorage(state.orders));

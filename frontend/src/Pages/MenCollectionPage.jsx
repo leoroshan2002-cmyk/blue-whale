@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "./men-collection.css";
+import { fetchCategories, fetchProducts } from "../services/api";
+import { subscribeToCatalogChanges } from "../utils/catalogSync";
+import { DEFAULT_IMAGE_FALLBACK, getSafeImageUrl } from "../utils/productImages";
+import { useCart } from "../Context/CartContext";
+import { useWishlist } from "../Context/WhislistContext";
+import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
 
 /* Put your men's photos in /public/images/men/ and use these names,
    or change the paths below. Without photos the warm gradient shows instead. */
@@ -10,23 +16,6 @@ const IMG = {
   details: "/images/men/k4.jpg",
   banner: "/images/men/k6.jpg",
 };
-
-/* Category images are temporary (reusing existing photos).
-   Replace with silk.jpg, festive.jpg, wedding.jpg, cotton.jpg, ready.jpg when ready. */
-const categories = [
-  { title: "Silk Veshtis", sub: "Luxury in every fold", img: "/images/men/k1.jpg" },
-  { title: "Festive Veshtis", sub: "Shine brighter", img: "/images/men/k2.jpg" },
-  { title: "Wedding Edit", sub: "For your special day", img: "/images/men/k3.jpg" },
-  { title: "Cotton Classics", sub: "Heritage in every thread", img: "/images/men/k4.jpg" },
-  { title: "Ready to Wear", sub: "Tradition meets today", img: "/images/men/k5.jpg" },
-];
-
-const products = [
-  { id: 1, name: "Ivory Gold Silk Veshti", price: 7499, img: "/images/men/p3.jpg" },
-  { id: 2, name: "Temple Border Cotton", price: 2499, img: "/images/men/p2.jpg" },
-  { id: 3, name: "Royal Maroon Wedding Set", price: 12999, img: "/images/men/p1.jpg" },
-  { id: 4, name: "Pre-Stitched Festive Veshti", price: 3999, img: "/images/men/p4.jpg" },
-];
 
 const details = [
   { label: "Zari Border", img: "/images/men/d3.jpg" },
@@ -39,12 +28,73 @@ const bg = (src) => ({ backgroundImage: `url(${src})` });
 const delay = (i, step = 0.12) => ({ "--d": `${i * step}s` });
 
 export default function MenCollectionPage() {
-  const [liked, setLiked] = useState({});
-  const [bag, setBag] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [productsError, setProductsError] = useState("");
+  const [categories, setCategories] = useState([]);
+  const [categoriesError, setCategoriesError] = useState("");
+  const { addToCart } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
+  const { requireAuthAction } = useRequireAuthAction();
 
-  const toggleLike = (id) => setLiked((l) => ({ ...l, [id]: !l[id] }));
-  // Replace with your real cart logic (context / redux / API)
-  const addToBag = (p) => setBag((b) => [...b, p]);
+  useEffect(() => {
+    let cancelled = false;
+    fetchCategories()
+      .then((items) => {
+        if (!cancelled) {
+          const menCategory = items.find((item) => item.slug === 'men' || item.name?.toLowerCase() === 'men');
+          setCategories(menCategory?.subCategoryCards || []);
+          setCategoriesError("");
+        }
+      })
+      .catch((error) => {
+        if (!cancelled) {
+          console.error("Failed to load men's collections:", error);
+          setCategories([]);
+          setCategoriesError(error?.response?.data?.message || error?.message || "Unable to load collections.");
+        }
+      });
+    const unsubscribe = subscribeToCatalogChanges(() => {
+      fetchCategories()
+        .then((items) => {
+          if (!cancelled) setCategories(items.find((item) => item.slug === 'men' || item.name?.toLowerCase() === 'men')?.subCategoryCards || []);
+        })
+        .catch((error) => {
+          if (!cancelled) {
+            console.error("Failed to refresh men's collections:", error);
+            setCategoriesError(error?.response?.data?.message || error?.message || "Unable to refresh collections.");
+          }
+        });
+    });
+    return () => {
+      cancelled = true;
+      unsubscribe();
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    const load = async () => {
+      try {
+        const allProducts = await fetchProducts();
+        if (cancelled) return;
+        setProducts(allProducts.filter((product) => String(product.category || "").trim().toLowerCase() === "men").slice(0, 4));
+        setProductsError("");
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Failed to load featured men's products:", error);
+        setProducts([]);
+        setProductsError(error?.response?.data?.message || error?.message || "Unable to load featured products.");
+      }
+    };
+    load();
+    window.addEventListener("haierah-products-updated", load);
+    window.addEventListener("haierah-order-created", load);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("haierah-products-updated", load);
+      window.removeEventListener("haierah-order-created", load);
+    };
+  }, []);
 
   // Scroll reveal for every element with a reveal-* class
   useEffect(() => {
@@ -120,16 +170,17 @@ export default function MenCollectionPage() {
         <div className="men-cats">
           {categories.map((c, i) => (
             <Link
-              key={c.title}
-              to="/category/men/all"
+              key={c.name}
+              to={`/category/men/all?subcategory=${encodeURIComponent(c.name)}`}
               className="men-cat men-img reveal-up"
-              style={{ ...bg(c.img), ...delay(i) }}
+              style={{ ...bg(getSafeImageUrl(c.image, DEFAULT_IMAGE_FALLBACK)), ...delay(i) }}
             >
-              <h3>{c.title}</h3>
-              <small>{c.sub}</small>
+              <h3>{c.name}</h3>
+              <small>{c.subtitle}</small>
               <span className="go">→</span>
             </Link>
           ))}
+          {categoriesError && <p role="alert">{categoriesError}</p>}
         </div>
       </section>
 
@@ -172,26 +223,37 @@ export default function MenCollectionPage() {
           <Link to="/category/men/all" className="men-link reveal-right">View all <span>→</span></Link>
         </div>
         <div className="men-products">
-          {products.map((p, i) => (
-            <article key={p.id} className="reveal-up" style={delay(i)}>
-              <div className="men-img men-product__img" style={bg(p.img)}>
+          {products.map((p, i) => {
+            const id = p.id || p._id;
+            const image = getSafeImageUrl(p.images?.[0] || p.image, DEFAULT_IMAGE_FALLBACK);
+            const price = Number(p.discountPrice ?? p.salePrice ?? p.price ?? 0);
+            return (
+            <article key={id} className="reveal-up" style={delay(i)}>
+              <div className="men-product-media">
+                <Link to={`/product/${id}`} className="men-img men-product__img" style={bg(image)} aria-label={`View ${p.name}`} />
                 <button
-                  className={`men-heart ${liked[p.id] ? "on" : ""}`}
-                  onClick={() => toggleLike(p.id)}
-                  aria-label={liked[p.id] ? "Remove from wishlist" : "Add to wishlist"}
+                  className={`men-heart ${isWishlisted(id) ? "on" : ""}`}
+                  onClick={() => {
+                    if (requireAuthAction("toggleWishlist", p)) toggleWishlist(p);
+                  }}
+                  aria-label={isWishlisted(id) ? "Remove from wishlist" : "Add to wishlist"}
                 >
-                  {liked[p.id] ? "♥" : "♡"}
+                  {isWishlisted(id) ? "♥" : "♡"}
                 </button>
               </div>
               <div className="men-product__info">
                 <div>
-                  <h3>{p.name}</h3>
-                  <p>₹ {p.price.toLocaleString("en-IN")}</p>
+                  <Link to={`/product/${id}`}><h3>{p.name}</h3></Link>
+                  <p>₹ {price.toLocaleString("en-IN")}</p>
                 </div>
-                <button className="men-bag" onClick={() => addToBag(p)} aria-label={`Add ${p.name} to bag`}>👜</button>
+                <button className="men-bag" disabled={Number(p.stock) <= 0} onClick={() => {
+                  if (requireAuthAction("addToCart", p)) addToCart(p);
+                }} aria-label={`Add ${p.name} to bag`}>👜</button>
               </div>
             </article>
-          ))}
+          );})}
+          {productsError && <p role="alert">{productsError}</p>}
+          {!productsError && products.length === 0 && <p>No men’s products are available yet.</p>}
         </div>
       </section>
 

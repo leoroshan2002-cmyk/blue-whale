@@ -24,89 +24,6 @@ const isSubcategoryValid = async (category, subCategory) => {
   return !validList || validList.length === 0 || validList.includes(subCategory);
 };
 
-const fallbackProducts = [
-  {
-    id: 'fallback-men-1',
-    name: 'Ocean Blue Polo',
-    sku: 'ZR-MEN-001',
-    price: 1899,
-    discountPrice: 1499,
-    category: 'Men',
-    subCategory: 'Shirts',
-    stock: 12,
-    description: 'Premium cotton polo for everyday elegance.',
-    images: [
-      'https://images.unsplash.com/photo-1581655353564-df123a1eb820?w=800',
-      'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=800',
-    ],
-    variants: {
-      sizes: ['S', 'M', 'L', 'XL'],
-      colors: [{ name: 'Blue', value: '#2563EB' }],
-    },
-    status: 'Active',
-  },
-  {
-    id: 'fallback-women-1',
-    name: 'Summer Linen Blouse',
-    sku: 'ZR-WOM-001',
-    price: 2499,
-    discountPrice: 1999,
-    category: 'Women',
-    subCategory: 'Blouses',
-    stock: 8,
-    description: 'Lightweight linen blouse with a clean silhouette.',
-    images: [
-      'https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800',
-      'https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800',
-    ],
-    variants: {
-      sizes: ['S', 'M', 'L'],
-      colors: [{ name: 'Cream', value: '#F5E7DA' }],
-    },
-    status: 'Active',
-  },
-  {
-    id: 'fallback-kids-1',
-    name: 'Colorful T-Shirt Set',
-    sku: 'ZR-KID-001',
-    price: 1299,
-    discountPrice: 999,
-    category: 'Kids',
-    subCategory: 'T-Shirts',
-    stock: 15,
-    description: 'Comfortable and playful everyday wear for kids.',
-    images: [
-      'https://images.unsplash.com/photo-1519345182560-3f2917c472ef?w=800',
-      'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800',
-    ],
-    variants: {
-      sizes: ['2Y', '3Y', '4Y'],
-      colors: [{ name: 'Multi', value: '#F59E0B' }],
-    },
-    status: 'Active',
-  },
-  {
-    id: 'fallback-arrival-1',
-    name: 'New Arrival Linen Shirt',
-    sku: 'ZR-NEW-001',
-    price: 2899,
-    discountPrice: 2299,
-    category: 'New Arrivals',
-    subCategory: 'Trending',
-    stock: 7,
-    description: 'Fresh seasonal styling with premium fabric.',
-    images: [
-      'https://images.unsplash.com/photo-1596362051780-e7f40e5a90a9?w=800',
-      'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=800',
-    ],
-    variants: {
-      sizes: ['S', 'M', 'L'],
-      colors: [{ name: 'Sand', value: '#D6C4A1' }],
-    },
-    status: 'Active',
-  },
-];
-
 const toProductResponse = (product) => {
   if (!product) return null;
 
@@ -120,12 +37,6 @@ const toProductResponse = (product) => {
     doc.colors = doc.variants?.colors || [];
     doc.sizes = doc.variants?.sizes || [];
     doc.subCategory = doc.subCategory || '';
-    doc.discount = doc.discount || 0;
-    doc.brand = doc.brand || 'HAIERAH';
-    doc.rating = doc.rating || 4.8;
-    doc.reviews = doc.reviews || 248;
-    doc.material = doc.material || 'Premium Fabric';
-    doc.description = doc.description || 'Premium quality product crafted for style and comfort.';
     return doc;
   }
 
@@ -136,12 +47,6 @@ const toProductResponse = (product) => {
     colors: product.variants?.colors || [],
     sizes: product.variants?.sizes || [],
     subCategory: product.subCategory || '',
-    discount: product.discount || 0,
-    brand: product.brand || 'HAIERAH',
-    rating: product.rating || 4.8,
-    reviews: product.reviews || 248,
-    material: product.material || 'Premium Fabric',
-    description: product.description || 'Premium quality product crafted for style and comfort.',
     variants: product.variants || { sizes: [], colors: [] },
   };
 };
@@ -280,21 +185,13 @@ export const buildProductUpdatePayload = (existingProduct, body, files = []) => 
   return updatePayload;
 };
 
-const getProductsFromStore = async () => {
-  try {
-    const products = await Product.find().sort({ createdAt: -1 });
-    return products.map(toProductResponse);
-  } catch (error) {
-    return fallbackProducts.map(toProductResponse);
-  }
-};
-
 export const listProducts = async (_req, res) => {
   try {
-    const products = await getProductsFromStore();
+    const products = (await Product.find().sort({ createdAt: -1 })).map(toProductResponse);
     res.status(200).json({ success: true, products });
   } catch (error) {
-    res.status(200).json({ success: true, products: fallbackProducts.map(toProductResponse) });
+    console.error('Failed to load products:', error);
+    res.status(500).json({ success: false, message: 'Unable to load products.' });
   }
 };
 
@@ -307,19 +204,13 @@ export const getProductById = async (req, res) => {
       return res.status(200).json({ success: true, product: toProductResponse(product) });
     }
 
-    const matchedProduct = fallbackProducts.find((item) => item.id === id);
-    if (matchedProduct) {
-      return res.status(200).json({ success: true, product: toProductResponse(matchedProduct) });
-    }
-
     return res.status(404).json({ message: 'Product not found' });
   } catch (error) {
-    const matchedProduct = fallbackProducts.find((item) => item.id === id);
-    if (matchedProduct) {
-      return res.status(200).json({ success: true, product: toProductResponse(matchedProduct) });
+    console.error('Failed to load product:', error);
+    if (error?.name === 'CastError') {
+      return res.status(404).json({ message: 'Product not found' });
     }
-
-    return res.status(404).json({ message: 'Product not found' });
+    return res.status(500).json({ message: 'Unable to load product.' });
   }
 };
 

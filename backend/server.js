@@ -28,6 +28,8 @@ const frontendOrigin = process.env.FRONTEND_URL || "http://localhost:5173";
 const allowedOrigins = new Set([
   ...frontendOrigin.split(",").map((origin) => origin.trim()).filter(Boolean),
   "https://blue-whale-flax.vercel.app",
+  "https://www.bluewhalecollection.com",
+  "https://bluewhalecollection.com",
 ]);
 
 app.use(

@@ -26,6 +26,28 @@ const buildEmailVerificationEmail = (name, code) => {
   };
 };
 
+const issueEmailVerificationCode = async (user) => {
+  const verificationCode = generateSixDigitCode();
+  const hashedVerificationCode = await bcrypt.hash(verificationCode, 10);
+  const now = new Date();
+
+  user.emailVerificationCode = hashedVerificationCode;
+  user.emailVerificationExpiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+  user.emailVerificationRequestedAt = now;
+  await user.save();
+
+  const { subject, text, html } = buildEmailVerificationEmail(user.name, verificationCode);
+  const delivery = await emailService.sendMail({
+    to: user.email,
+    subject,
+    text,
+    html,
+    from: process.env.EMAIL_FROM || `no-reply@${process.env.APP_DOMAIN || 'example.com'}`,
+  });
+
+  return !delivery?.skipped;
+};
+
 const authorizedEmails = parseCsvList(process.env.AUTHORIZED_EMAILS);
 const authorizedDomains = parseCsvList(process.env.AUTHORIZED_EMAIL_DOMAINS);
 
@@ -122,18 +144,32 @@ export const registerUser = async (req, res) => {
 
     const existingUser = await User.findOne({ email: trimmedEmail });
     if (existingUser) {
-      if (!existingUser.emailVerified) {
-        return res.status(409).json({
-          message: 'This email is already registered but not verified. Please check your inbox or request a new verification code.',
+      if (existingUser.emailVerified) {
+        return res.status(409).json({ message: 'User already exists' });
+      }
+
+      let emailVerificationSent;
+      try {
+        emailVerificationSent = await issueEmailVerificationCode(existingUser);
+      } catch (error) {
+        console.error('Registration verification email failed:', error);
+        return res.status(503).json({
+          message: 'This account is awaiting email verification, but we could not send a code. Please try again later.',
         });
       }
-      return res.status(409).json({ message: 'User already exists' });
-    }
 
-    const verificationCode = generateSixDigitCode();
-    const hashedVerificationCode = await bcrypt.hash(verificationCode, 10);
-    const now = new Date();
-    const verificationExpiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+      if (!emailVerificationSent) {
+        return res.status(503).json({
+          message: 'This account is awaiting email verification, but email delivery is not configured. Please contact support.',
+        });
+      }
+
+      return res.status(200).json({
+        message: 'A new verification code was sent to your email.',
+        user: toAuthUserResponse(existingUser),
+        emailVerificationSent: true,
+      });
+    }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
@@ -144,19 +180,23 @@ export const registerUser = async (req, res) => {
       role: 'user',
       authProvider: 'local',
       emailVerified: false,
-      emailVerificationCode: hashedVerificationCode,
-      emailVerificationExpiresAt: verificationExpiresAt,
-      emailVerificationRequestedAt: now,
     });
 
-    const { subject, text, html } = buildEmailVerificationEmail(name, verificationCode);
-    await emailService.sendMail({
-      to: trimmedEmail,
-      subject,
-      text,
-      html,
-      from: process.env.EMAIL_FROM || `no-reply@${process.env.APP_DOMAIN || 'example.com'}`,
-    });
+    let emailVerificationSent;
+    try {
+      emailVerificationSent = await issueEmailVerificationCode(user);
+    } catch (error) {
+      console.error('Registration verification email failed:', error);
+      return res.status(503).json({
+        message: 'Your account was created but we could not send a verification code. Please retry registration to try again.',
+      });
+    }
+
+    if (!emailVerificationSent) {
+      return res.status(503).json({
+        message: 'Your account was created, but email delivery is not configured. Please contact support to complete registration.',
+      });
+    }
 
     res.status(201).json({
       message: 'User registered successfully. Verification code sent to your email.',
@@ -189,24 +229,17 @@ export const requestEmailVerificationCode = async (req, res) => {
       return res.status(400).json({ message: 'Email is already verified' });
     }
 
-    const verificationCode = generateSixDigitCode();
-    const hashedVerificationCode = await bcrypt.hash(verificationCode, 10);
-    const now = new Date();
-    const verificationExpiresAt = new Date(now.getTime() + 10 * 60 * 1000);
+    let emailVerificationSent;
+    try {
+      emailVerificationSent = await issueEmailVerificationCode(user);
+    } catch (error) {
+      console.error('Email verification resend failed:', error);
+      return res.status(503).json({ message: 'Could not send the verification code. Please try again later.' });
+    }
 
-    user.emailVerificationCode = hashedVerificationCode;
-    user.emailVerificationExpiresAt = verificationExpiresAt;
-    user.emailVerificationRequestedAt = now;
-    await user.save();
-
-    const { subject, text, html } = buildEmailVerificationEmail(user.name, verificationCode);
-    await emailService.sendMail({
-      to: trimmedEmail,
-      subject,
-      text,
-      html,
-      from: process.env.EMAIL_FROM || `no-reply@${process.env.APP_DOMAIN || 'example.com'}`,
-    });
+    if (!emailVerificationSent) {
+      return res.status(503).json({ message: 'Email delivery is not configured. Please contact support.' });
+    }
 
     return res.status(200).json({ message: 'Verification code resent to your email address' });
   } catch (error) {

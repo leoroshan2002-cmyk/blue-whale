@@ -85,8 +85,8 @@ const App = () => {
 
           <Routes>
             {/* PUBLIC ROUTES */}
-            <Route path="/login" element={<><Login /><Footer /></>} />
-            <Route path="/register" element={<><Register /><Footer /></>} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
 
             {/* /home is kept as an alias of the main Home page */}
             <Route path="/home" element={<Navigate to="/" replace />} />

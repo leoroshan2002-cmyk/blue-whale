@@ -197,7 +197,7 @@ export default function Register() {
         {/* LEFT SIDE */}
         <div className="relative hidden min-h-screen overflow-hidden lg:block">
             
-           <div className="absolute left-10 top-10 z-20 rounded-2xl bg-white/95 px-4 py-2 shadow-lg">
+           <div className="absolute left-10 top-10 z-20">
              <img src={BlueWhaleLogo} alt="Blue Whale" className="h-14 w-auto object-contain" />
             </div>
           <img

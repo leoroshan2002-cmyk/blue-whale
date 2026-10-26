@@ -30,7 +30,7 @@ export default function Navbar() {
       name: category.name,
       path: `/category/${encodeURIComponent(category.slug)}`,
     })),
-    { name: "Shop all", path: "/products" },
+    { name: "Combo", path: "/products" },
   ];
 
   useEffect(() => {

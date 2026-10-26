@@ -114,7 +114,7 @@ export default function MenCollectionPage() {
     );
     els.forEach((el) => io.observe(el));
     return () => io.disconnect();
-  }, []);
+  }, [products, categories]);
 
   return (
     <main className="men-page">

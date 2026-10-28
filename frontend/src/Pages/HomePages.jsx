@@ -418,7 +418,7 @@ export default function HomePage() {
             <p role="status">Live products are unavailable: {featuredProductsError}</p>
           )}
 
-          <Link className="bw-button" to="/products">
+          <Link className="bw-button" to="/shop">
             EXPLORE ALL <ArrowRight size={14} />
           </Link>
         </div>

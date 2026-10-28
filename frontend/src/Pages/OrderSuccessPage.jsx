@@ -27,7 +27,7 @@ export default function OrderSuccessPage() {
           </button>
           <button
             type="button"
-            onClick={() => navigate("/products")}
+            onClick={() => navigate("/shop")}
             className="rounded-full border border-gray-300 px-6 py-3 font-medium text-gray-700"
           >
             Continue Shopping

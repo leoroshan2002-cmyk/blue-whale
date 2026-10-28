@@ -188,13 +188,13 @@ const CategoriesSidebar = ({ open, setOpen, activeMenu }) => {
         }
 
         if (activeMenu === "MEN") {
-            navigate('/products');
+            navigate('/shop');
         } else if (activeMenu === "WOMEN") {
-            navigate('/products');
+            navigate('/shop');
         } else if (activeMenu === "KIDS") {
-            navigate('/products');
+            navigate('/shop');
         } else if (activeMenu === "NEW") {
-            navigate('/products');
+            navigate('/shop');
         }
     };
 
@@ -260,7 +260,7 @@ const CategoriesSidebar = ({ open, setOpen, activeMenu }) => {
                                 className="text-[#F5F1E8] text-3xl tracking-[0.2em]"
                                 style={{ fontFamily: "Cormorant Garamond" }}
                             >
-                                HAIERAH
+                                BLUE WHALE
                             </h1>
 
                             <p className="text-zinc-500 mt-2 text-sm uppercase tracking-[0.12em]">

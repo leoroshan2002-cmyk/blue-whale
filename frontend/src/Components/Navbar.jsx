@@ -17,6 +17,9 @@ export default function Navbar() {
   const location = useLocation();
   const isHomePage = ["/", "/home"].includes(location.pathname);
   const isWomenPage = location.pathname === "/category/women";
+  const isMenPage = location.pathname === "/category/men";
+  const isComboPage = location.pathname === "/products";
+  const isCategoryProductsPage = ["/category/men/all", "/category/women/all"].includes(location.pathname);
 
   const [search, setSearch] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -70,12 +73,14 @@ export default function Navbar() {
   }, []);
 
   // Transparent over the hero until the page is scrolled
-  const overHero = (isHomePage || isWomenPage) && !isScrolled;
+  const overHero = (isHomePage || isWomenPage || isMenPage || isComboPage) && !isScrolled;
 
   return (
     <header
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-        overHero
+        isCategoryProductsPage && !isScrolled
+          ? "bg-transparent"
+          : overHero
           ? "bg-gradient-to-b from-black/60 via-black/20 to-transparent"
           : "bg-white/95 shadow-md backdrop-blur-md"
       }`}

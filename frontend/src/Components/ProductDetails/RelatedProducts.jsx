@@ -42,7 +42,7 @@ export default function RelatedProducts({ product }) {
           <h2 className="font-serif text-5xl">You May Also Like</h2>
           <p className="mt-2 text-gray-500">Discover similar styles from our collection.</p>
         </div>
-        <Link to="/products" className="text-lg font-medium hover:underline">View All →</Link>
+        <Link to="/shop" className="text-lg font-medium hover:underline">View All →</Link>
       </div>
       {loadError ? (
         <p role="alert" className="text-gray-600">{loadError}</p>

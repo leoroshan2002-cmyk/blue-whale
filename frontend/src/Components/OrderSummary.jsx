@@ -261,8 +261,8 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                 key: razorpayOrderData.razorpayKey,
                 amount: razorpayOrderData.order.amount,
                 currency: razorpayOrderData.order.currency,
-                name: "HAIERAH",
-                description: "Purchase from HAIERAH",
+                name: "Blue Whale",
+                description: "Purchase from Blue Whale",
                 order_id: razorpayOrderData.order.id,
                 handler: async (response) => {
                     try {

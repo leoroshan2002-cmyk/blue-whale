@@ -103,7 +103,7 @@ export default function CartPage() {
         </p>
 
         <Link
-          to="/products"
+          to="/shop"
           className="rounded-full border border-[#9a622d] bg-[#6b3019] px-8 py-4 text-white shadow-md transition duration-300 hover:bg-[#4b2115]"
         >
           Continue Shopping
@@ -342,7 +342,7 @@ export default function CartPage() {
               </button>
 
               <Link
-                to="/products"
+                to="/shop"
                 className="mt-4 block text-center text-sm text-[#8b4c25] underline underline-offset-4 transition hover:text-[#4b2115]"
               >
                 Continue Shopping

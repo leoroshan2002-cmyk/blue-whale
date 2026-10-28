@@ -44,7 +44,7 @@ export default function OrderCard({ order, onDeleteOrder, onCancelOrder }) {
     : Math.max(0, orderTotal - orderSubtotal + couponDiscount - deliveryCost - shippingCost);
 
   const handleBuyAgain = () => {
-    navigate("/products");
+    navigate("/shop");
     setFeedback("Redirecting you to products to reorder this item.");
   };
 
@@ -120,7 +120,7 @@ export default function OrderCard({ order, onDeleteOrder, onCancelOrder }) {
         <body>
           <main class="invoice">
             <header class="top">
-              <div class="brand">HAIERAH</div>
+              <div class="brand">BLUE WHALE</div>
               <div><h1>INVOICE</h1><div class="meta">Invoice #: ${escapeHtml(orderId)}<br>Issue Date: ${escapeHtml(orderDate)}</div></div>
             </header>
             <section class="addresses">
@@ -137,7 +137,7 @@ export default function OrderCard({ order, onDeleteOrder, onCancelOrder }) {
               <div><span>Tax</span><strong>₹${orderTax.toFixed(2)}</strong></div>
               <div class="total"><span>Balance Due</span><span>₹${orderTotal.toFixed(2)}</span></div>
             </section>
-            <footer class="footer">Thank you for shopping with HAIERAH.</footer>
+            <footer class="footer">Thank you for shopping with Blue Whale.</footer>
           </main>
         </body>
       </html>

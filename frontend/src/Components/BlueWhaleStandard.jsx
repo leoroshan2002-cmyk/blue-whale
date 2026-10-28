@@ -36,13 +36,13 @@ const features = [
   },
 ];
 
-export default function HaierahStandard() {
+export default function BlueWhaleStandard() {
   return (
     <section className="bg-[#faf8f4] py-14">
       <div className="max-w-7xl mx-auto px-6">
 
         <p className="uppercase tracking-[3px] text-sm text-gray-600 mb-8">
-          WHY CHOOSE HAIERAH
+          WHY CHOOSE BLUE WHALE
         </p>
 
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">

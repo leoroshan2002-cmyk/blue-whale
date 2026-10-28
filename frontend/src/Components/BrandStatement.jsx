@@ -33,7 +33,7 @@ export default function BrandStatement() {
   return (
     <section className="relative overflow-hidden bg-[#FAF8F5] py-10">
           <h1 className="absolute inset-0 flex items-center justify-center pointer-events-none select-none font-serif font-light text-black/5 text-[18vw] tracking-[0.08em] whitespace-nowrap">
-                HAIERAH
+                BLUE WHALE
            </h1>
       <div className="relative z-10 max-w-7xl mx-auto px-6">
         <div className="grid lg:grid-cols-5 gap-14">
@@ -44,11 +44,11 @@ export default function BrandStatement() {
             </p>
 
             <h2 className="text-5xl font-serif font-light leading-tight">
-              The HAIERAH Way
+              The Blue Whale Way
             </h2>
 
             <p className="mt-8 text-gray-600 leading-8">
-              At HAIERAH, we believe luxury is found in thoughtful details.
+              At Blue Whale, we believe luxury is found in thoughtful details.
               Every garment is crafted with intention, timeless design,
               and uncompromising quality.
             </p>

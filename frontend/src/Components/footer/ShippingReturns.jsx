@@ -33,7 +33,7 @@ export default function ShippingReturns() {
 
         <section>
           <h2 className="text-xl font-semibold mb-2">Need help?</h2>
-          <p className="text-slate-600">If you have questions about shipping or returns, contact our support team at <a href="mailto:support@haierah.com" className="text-red-600">support@haierah.com</a> or use the Contact page.</p>
+          <p className="text-slate-600">If you have questions about shipping or returns, <a href="mailto:support@haierah.com" className="text-red-600">contact our support team</a> or use the Contact page.</p>
         </section>
       </div>
     </main>

@@ -25,7 +25,7 @@ export default function SearchBar({ open, setOpen }) {
         const normalizedSearch = normalizeSearchText(search);
         if (!normalizedSearch) return;
 
-        navigate(`/products?search=${encodeURIComponent(normalizedSearch)}`);
+        navigate(`/shop?search=${encodeURIComponent(normalizedSearch)}`);
         setOpen(false);
     };
 
@@ -137,7 +137,7 @@ export default function SearchBar({ open, setOpen }) {
                                         onClick={() => {
                                             const normalizedSearch = normalizeSearchText(item);
                                             if (!normalizedSearch) return;
-                                            navigate(`/products?search=${encodeURIComponent(normalizedSearch)}`);
+                                            navigate(`/shop?search=${encodeURIComponent(normalizedSearch)}`);
                                             setOpen(false);
                                         }}
                                         className="

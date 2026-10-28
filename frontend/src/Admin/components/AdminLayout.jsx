@@ -31,11 +31,11 @@ const navItems = [
   { id: "categories", label: "Categories", icon: Tags },
   { id: "subcategories", label: "Subcategories", icon: ListTree },
   { id: "orders", label: "Orders", icon: ShoppingCart },
-  { id: "campaigns", label: "Campaigns", icon: Layout },
+  // { id: "campaigns", label: "Campaigns", icon: Layout },
   { id: "customers", label: "Customers", icon: Users },
   { id: "inventory", label: "Inventory", icon: Warehouse },
   // { id: 'cms', label: 'CMS Control', icon: Layout },
-  { id: "coupons", label: "Coupons", icon: Percent },
+  // { id: "coupons", label: "Coupons", icon: Percent },
   { id: "analytics", label: "Analytics", icon: LineChart },
   { id: "settings", label: "Settings", icon: SettingsIcon },
 ];
@@ -395,7 +395,7 @@ export function AdminLayout({
         />
       )}
 
-      <main className="flex-grow flex flex-col overflow-hidden min-w-0">
+      <main className="flex-grow flex flex-col overflow-hidden min-w-0 min-h-0">
         <AdminHeader
           currentTab={currentTab}
           onOpenMobileSidebar={() => setMobileSidebarOpen(true)}
@@ -408,7 +408,7 @@ export function AdminLayout({
           onSelectProfile={onSelectProfile}
         />
 
-        <section className="admin-content flex-grow p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden w-full bg-slate-50/20 min-w-0">
+        <section className="admin-content flex-grow min-h-0 p-4 sm:p-6 lg:p-8 overflow-y-auto overflow-x-hidden w-full bg-slate-50/20 min-w-0">
           {viewContent}
         </section>
 

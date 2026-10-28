@@ -1,6 +1,9 @@
 @import "tailwindcss";
 
 #master-admin-root {
+	position: fixed;
+	inset: 0;
+	height: 100dvh;
 	min-width: 0;
 }
 

@@ -35,10 +35,12 @@ function FilterGroup({ title, children }) {
   );
 }
 
-export default function MenProductsPage() {
+export default function CategoryProductsPage({ categoryName = "men" }) {
   const { search } = useLocation();
   const requestedCategory = new URLSearchParams(search).get("subcategory") || "All Products";
   const [category, setCategory] = useState(requestedCategory);
+  const title = categoryName === "women" ? "Women" : "Men";
+  const categoryPath = `/category/${categoryName}`;
   const [maxPrice, setMaxPrice] = useState(null);
   const [fabrics, setFabrics] = useState([]);
   const [colours, setColours] = useState([]);
@@ -60,11 +62,11 @@ export default function MenProductsPage() {
       try {
         const allProducts = await fetchProducts();
         if (cancelled) return;
-        setProducts(allProducts.filter((product) => String(product.category || "").trim().toLowerCase() === "men"));
+        setProducts(allProducts.filter((product) => String(product.category || "").trim().toLowerCase() === categoryName));
         setLoadError("");
       } catch (error) {
         if (cancelled) return;
-        console.error("Failed to load men's products:", error);
+        console.error(`Failed to load ${categoryName}'s products:`, error);
         setProducts([]);
         setLoadError(error?.response?.data?.message || error?.message || "Unable to load products.");
       } finally {
@@ -81,7 +83,7 @@ export default function MenProductsPage() {
       window.removeEventListener("haierah-products-updated", load);
       window.removeEventListener("haierah-order-created", load);
     };
-  }, []);
+  }, [categoryName]);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,15 +91,15 @@ export default function MenProductsPage() {
       try {
         const categories = await fetchCategories();
         if (!cancelled) {
-          const menCategory = categories.find((item) => item.slug === "men" || item.name?.toLowerCase() === "men");
+          const categoryData = categories.find((item) => item.slug === categoryName || item.name?.toLowerCase() === categoryName);
           setManagedSubcategories([...new Set([
-            ...(menCategory?.subCategories || []),
-            ...(menCategory?.subCategoryCards || []).map((card) => card.name),
+            ...(categoryData?.subCategories || []),
+            ...(categoryData?.subCategoryCards || []).map((card) => card.name),
           ])]);
         }
       } catch (error) {
         if (!cancelled) {
-          console.error("Failed to load men's subcategories:", error);
+          console.error(`Failed to load ${categoryName}'s subcategories:`, error);
         }
       }
     };
@@ -107,7 +109,7 @@ export default function MenProductsPage() {
       cancelled = true;
       unsubscribe();
     };
-  }, []);
+  }, [categoryName]);
 
   const toggle = (list, setList, v) =>
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
@@ -160,10 +162,12 @@ export default function MenProductsPage() {
       {/* Breadcrumb + title banner */}
       <section className="mp-hero">
         <nav className="mp-crumbs" aria-label="Breadcrumb">
-          <Link to="/">Home</Link> › <Link to="/category/men">Men</Link> › <b>All Products</b>
+          <Link to="/">Home</Link> › <Link to={categoryPath}>{title}</Link> › <b>All Products</b>
         </nav>
-        <h1>Men’s Collection</h1>
-        <p>Timeless veshtis. Refined craftsmanship. Traditional style.</p>
+        <h1>{title} Collection</h1>
+        <p>{categoryName === "women"
+          ? "Timeless sarees. Refined craftsmanship. Traditional style."
+          : "Timeless veshtis. Refined craftsmanship. Traditional style."}</p>
       </section>
 
       <div className="mp-layout">
@@ -279,7 +283,7 @@ export default function MenProductsPage() {
                         {off > 0 && <><s>M.R.P. {inr(originalPrice)}</s><em>{off}% OFF</em></>}
                       </div>
                       <button className="mp-add" disabled={Number(p.stock) <= 0} onClick={() => handleAddToCart(p)}>
-                        {Number(p.stock) > 0 ? "🛒 Add to Cart" : "Out of Stock"}
+                        {Number(p.stock) > 0 ? " Add to Cart" : "Out of Stock"}
                       </button>
                     </div>
                   </article>

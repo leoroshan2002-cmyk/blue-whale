@@ -68,7 +68,7 @@ export default function ProductPage() {
       && String(item.category || "").toLowerCase() === String(product?.category || "").toLowerCase())
     .slice(0, 4), [catalog, product]);
 
-  if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>{isLoading ? "Finding your piece…" : productError ? "Product could not be loaded" : "Product not found"}</h2><p>{productError || "This product may no longer be available."}</p><Link to="/products?category=women">Back to collection</Link></div></main>;
+  if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>{isLoading ? "Finding your piece…" : productError ? "Product could not be loaded" : "Product not found"}</h2><p>{productError || "This product may no longer be available."}</p><Link to="/shop?category=women">Back to collection</Link></div></main>;
 
   const selectedColorValue = colors[selectedColor];
   const stock = Number(product.stock ?? 0);
@@ -79,7 +79,7 @@ export default function ProductPage() {
     addToCart(cartItem);
   };
   const handleWishlist = () => { if (requireAuthAction("toggleWishlist", product)) toggleWishlist(product); };
-  const categoryPath = `/products?category=${encodeURIComponent(String(product.category || "women").toLowerCase())}${product.subCategory || product.subcategory ? `&subcategory=${encodeURIComponent(product.subCategory || product.subcategory)}` : ""}`;
+  const categoryPath = `/shop?category=${encodeURIComponent(String(product.category || "women").toLowerCase())}${product.subCategory || product.subcategory ? `&subcategory=${encodeURIComponent(product.subCategory || product.subcategory)}` : ""}`;
 
   return <main className="bw-product-page">
     <div className="bw-product-breadcrumb"><Link to={categoryPath}><ArrowLeft size={15}/> Back to collection</Link><span>BLUE WHALE / {product.category || "COLLECTION"} / {product.name}</span></div>

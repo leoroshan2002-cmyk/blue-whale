@@ -183,7 +183,7 @@ export default function Wishlist() {
               <button
                 type="button"
                 className="bw-add-cart"
-                onClick={() => navigate("/products")}
+                onClick={() => navigate("/shop")}
               >
                 Explore Collection <ArrowRight size={17} />
               </button>
@@ -199,7 +199,7 @@ export default function Wishlist() {
             <button
               type="button"
               className="bw-continue-button"
-              onClick={() => navigate("/products")}
+              onClick={() => navigate("/shop")}
             >
               Continue Shopping <ArrowRight size={16} />
             </button>

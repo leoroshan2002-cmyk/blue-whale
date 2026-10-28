@@ -22,10 +22,11 @@ import OrderHistory from "./Components/AccountDetails/OrderHistory";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MenCollectionPage from "./Pages/MenCollectionPage";
-import MenProductsPage from "./Pages/MenProductsPage";
+import CategoryProductsPage from "./Pages/CategoryProductsPage";
 
 import AdminDashboard from "./Pages/AdminDashboard";
 import ProductsPage from "./Pages/ProductsPage";
+import ComboCollectionPage from "./Pages/ComboCollectionPage";
 import ProductPage from "./Pages/ProductPage";
 import HomePage from "./Pages/HomePages";
 import CategoryPage from "./Pages/CategoryPage";
@@ -45,7 +46,7 @@ import BrandStory from "./Components/footer/BrandStory";
 import Sustainability from "./Components/footer/Sustainability";
 import Press from "./Components/footer/Press";
 import StoreLocator from "./Components/footer/StoreLocator";
-import Footer from "./Components/Footer";
+import HomeFooter from "./Components/home/HomeFooter";
 
 const App = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -107,10 +108,12 @@ const App = () => {
               <Route path="/sustainability" element={<Sustainability />} />
               <Route path="/press" element={<Press />} />
               <Route path="/store-locator" element={<StoreLocator />} />
-              <Route path="/products" element={<ProductsPage />} />
+              <Route path="/products" element={<ComboCollectionPage />} />
+              <Route path="/shop" element={<ProductsPage />} />
               <Route path="/category/women" element={<WomenCollectionPage />} />
+              <Route path="/category/women/all" element={<CategoryProductsPage key="women" categoryName="women" />} />
               <Route path="/category/men" element={<MenCollectionPage />} />
-              <Route path="/category/men/all" element={<MenProductsPage />} />
+              <Route path="/category/men/all" element={<CategoryProductsPage key="men" />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/product/:id" element={<ProductPage />} />
 
@@ -147,7 +150,7 @@ const App = () => {
             </Route>
 
             {/* NOT FOUND */}
-            <Route path="*" element={<><NotFound /><Footer /></>} />
+            <Route path="*" element={<><NotFound /><HomeFooter /></>} />
           </Routes>
         </Router>
       </div>

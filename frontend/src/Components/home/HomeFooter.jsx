@@ -3,9 +3,9 @@ import { ArrowRight } from "lucide-react";
 import logo from "../../assets/BlueWhaleLogoTransparent.png";
 
 const COLUMNS = [
-  { title: "Quick Links", links: [["Home", "/"], ["Shop", "/products"], ["Collections", "/category/women"], ["About Us", "/brand-story"], ["Contact", "/contact"]] },
-  { title: "Shop by", links: [["Women", "/category/women"], ["Men", "/category/men"], ["Sarees", "/category/women"], ["Dhotis", "/category/men"], ["Accessories", "/products"]] },
-  { title: "Customer Care", links: [["FAQ", "/contact"], ["Shipping & Delivery", "/shipping-returns"], ["Returns & Exchanges", "/shipping-returns"], ["Size Guide", "/products"], ["Track Order", "/orders"]] },
+  { title: "Quick Links", links: [["Home", "/"], ["Shop", "/shop"], ["Collections", "/category/women"], ["About Us", "/brand-story"], ["Contact", "/contact"]] },
+  { title: "Shop by", links: [["Women", "/category/women"], ["Men", "/category/men"], ["Sarees", "/category/women"], ["Dhotis", "/category/men"], ["Accessories", "/shop"]] },
+  { title: "Customer Care", links: [["FAQ", "/contact"], ["Shipping & Delivery", "/shipping-returns"], ["Returns & Exchanges", "/shipping-returns"], ["Size Guide", "/shop"], ["Track Order", "/orders"]] },
 ];
 
 const YEAR = new Date().getFullYear();

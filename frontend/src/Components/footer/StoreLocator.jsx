@@ -10,10 +10,10 @@ export default function StoreLocator() {
         </div>
         <h1 className="text-3xl font-semibold mb-4">Store Locator</h1>
 
-        <p className="text-slate-600 mb-4">Find HAIERAH stores and authorised retailers near you. For the most up-to-date store hours and services, contact the listed location directly.</p>
+        <p className="text-slate-600 mb-4">Find Blue Whale stores and authorised retailers near you. For the most up-to-date store hours and services, contact the listed location directly.</p>
 
         <div className="bg-white p-6 rounded shadow">
-          <p className="text-slate-600">No stores found in your area yet. Please check back or contact <a href="mailto:stores@haierah.com" className="text-red-600">stores@haierah.com</a> for assistance.</p>
+          <p className="text-slate-600">No stores found in your area yet. Please check back or <a href="mailto:stores@haierah.com" className="text-red-600">contact our store team</a> for assistance.</p>
         </div>
       </div>
     </main>

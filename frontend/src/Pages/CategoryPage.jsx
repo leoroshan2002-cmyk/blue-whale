@@ -9,7 +9,7 @@ import PageBack from "../Components/CommonDetails/PageBack";
 import { fetchProducts, fetchCategories } from "../services/api";
 import { normalizeSearchText } from "../utils/searchUtils";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
-import HaierahStandard from "../Components/HaierahStandard";
+import BlueWhaleStandard from "../Components/BlueWhaleStandard";
 import CampaignSlider from "../Components/CampaignSlider";
 import PromoGrid from "../Components/PromoGrid";
 
@@ -108,11 +108,11 @@ export default function CategoryPage() {
   }
 
   if (categoryError && !category) {
-    return <div className="min-h-screen bg-[#f8f7f5] px-6 pb-24 pt-28 text-center" role="alert"><h1 className="mb-4 text-2xl font-bold">Unable to load this collection</h1><p>{categoryError}</p><Link to="/products" className="mt-6 inline-block rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse all products</Link></div>;
+    return <div className="min-h-screen bg-[#f8f7f5] px-6 pb-24 pt-28 text-center" role="alert"><h1 className="mb-4 text-2xl font-bold">Unable to load this collection</h1><p>{categoryError}</p><Link to="/shop" className="mt-6 inline-block rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse all products</Link></div>;
   }
 
   if (!category) {
-    return <div className="min-h-screen bg-[#f8f7f5] px-6 pb-24 pt-28 text-center"><h1 className="mb-4 text-4xl font-bold">Category not found</h1><Link to="/products" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse all products</Link></div>;
+    return <div className="min-h-screen bg-[#f8f7f5] px-6 pb-24 pt-28 text-center"><h1 className="mb-4 text-4xl font-bold">Category not found</h1><Link to="/shop" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse all products</Link></div>;
   }
 
   return (
@@ -122,15 +122,15 @@ export default function CategoryPage() {
       <div className="mx-auto max-w-[1440px] px-3 py-12 sm:px-8 sm:py-24 lg:px-12">
         <div className="mb-8"><PageBack /></div>
         <motion.header initial="hidden" whileInView="visible" viewport={{ once: true }} variants={reveal} transition={{ duration: 0.7 }} className="mb-8 flex flex-col gap-6 border-y border-[#172333]/15 py-6 md:mb-12 md:flex-row md:items-end md:justify-between md:py-8">
-          <div><p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.28em] text-[#b36c42] sm:text-[10px]">The Haierah edit / 2026</p><h1 className="font-serif text-4xl tracking-[-0.04em] sm:text-5xl lg:text-6xl">{category.name}</h1><p className="mt-3 max-w-xl text-sm leading-6 text-[#172333]/65 sm:mt-4 sm:leading-7">Considered pieces for everyday movement, cut with intention and made to stay in rotation.</p></div>
+          <div><p className="mb-3 text-[9px] font-semibold uppercase tracking-[0.28em] text-[#b36c42] sm:text-[10px]">The Blue Whale edit / 2026</p><h1 className="font-serif text-4xl tracking-[-0.04em] sm:text-5xl lg:text-6xl">{category.name}</h1><p className="mt-3 max-w-xl text-sm leading-6 text-[#172333]/65 sm:mt-4 sm:leading-7">Considered pieces for everyday movement, cut with intention and made to stay in rotation.</p></div>
           <div className="flex flex-col items-start gap-4 md:items-end"><span className="text-[10px] uppercase tracking-[0.2em] text-[#172333]/55 sm:text-xs">{filteredProducts.length} {filteredProducts.length === 1 ? "piece" : "pieces"}</span>{availableSubcategories.length > 0 && <nav className="flex flex-wrap gap-2" aria-label={`${category.name} subcategories`}><Link to={`/category/${category.slug}`} className={`rounded-full border px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] sm:px-4 ${!subcategory ? "border-[#172333] bg-[#172333] text-white" : "border-[#172333]/20 text-[#172333]/65"}`}>All</Link>{availableSubcategories.map((item) => <Link key={item} to={`/category/${category.slug}?subcategory=${encodeURIComponent(item)}`} className={`rounded-full border px-3 py-2 text-[9px] font-semibold uppercase tracking-[0.18em] sm:px-4 ${normalizeValue(subcategory) === normalizeValue(item) ? "border-[#b36c42] bg-[#b36c42] text-white" : "border-[#172333]/20 text-[#172333]/65"}`}>{item}</Link>)}</nav>}</div>
         </motion.header>
-        {productsError ? <div className="rounded-3xl border border-red-200 bg-white p-8 text-center text-red-700" role="alert"><h3 className="mb-3 text-2xl font-semibold">Products could not be loaded</h3><p>{productsError}</p></div> : filteredProducts.length > 0 ? <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.08 }} variants={{ visible: { transition: { staggerChildren: 0.07 } } }} className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4">{filteredProducts.map((product) => <motion.div key={product.id} variants={reveal} transition={{ duration: 0.6 }}><ProductCard product={product} onAddToCart={() => { if (!requireAuthAction("addToCart", product)) return; addToCart(product); }} onWishlist={toggleWishlist} /></motion.div>)}</motion.div> : <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center sm:p-16"><h3 className="mb-3 text-2xl font-semibold">No products yet</h3><p className="mb-6 text-slate-500">There are no products assigned to the {category.name} category yet.</p><Link to="/products" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse other categories</Link></div>}
+        {productsError ? <div className="rounded-3xl border border-red-200 bg-white p-8 text-center text-red-700" role="alert"><h3 className="mb-3 text-2xl font-semibold">Products could not be loaded</h3><p>{productsError}</p></div> : filteredProducts.length > 0 ? <motion.div initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.08 }} variants={{ visible: { transition: { staggerChildren: 0.07 } } }} className="grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-12 md:grid-cols-3 lg:grid-cols-4">{filteredProducts.map((product) => <motion.div key={product.id} variants={reveal} transition={{ duration: 0.6 }}><ProductCard product={product} onAddToCart={() => { if (!requireAuthAction("addToCart", product)) return; addToCart(product); }} onWishlist={toggleWishlist} /></motion.div>)}</motion.div> : <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center sm:p-16"><h3 className="mb-3 text-2xl font-semibold">No products yet</h3><p className="mb-6 text-slate-500">There are no products assigned to the {category.name} category yet.</p><Link to="/shop" className="rounded-full bg-amber-700 px-6 py-3 font-bold text-white">Browse other categories</Link></div>}
       </div>
       <motion.div initial={{ opacity: 0, y: 32 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }} className="mx-auto mt-8 max-w-[1440px] px-4 sm:mt-12 sm:px-8 lg:px-12">
         {/* <PromoGrid category={category.slug} variant="bottom" /> */}
         </motion.div>
-      <HaierahStandard />
+      <BlueWhaleStandard />
     </motion.div>
   );
 }

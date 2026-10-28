@@ -30,7 +30,7 @@
 
 /* HERO */
 .mp-hero {
-    padding: 28px 68px 36px;
+    padding: 112px 68px 36px;
     min-height: 190px;
     background: linear-gradient(90deg, var(--cream) 45%, rgba(250, 245, 236, .2)), url("/images/men/hero.jpg") right center / cover, var(--sand);
 }
@@ -431,7 +431,7 @@
     }
 
     .mp-hero {
-        padding: 20px 20px 28px;
+        padding: 100px 20px 28px;
     }
 
     .mp-grid.list .mp-card {

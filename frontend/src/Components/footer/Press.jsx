@@ -13,11 +13,11 @@ export default function Press() {
         <p className="text-slate-600 mb-4">For media inquiries, press assets, and high-resolution imagery, please contact our press team.</p>
 
         <h2 className="text-xl font-semibold mt-4">Press Contacts</h2>
-        <p className="text-slate-600">Email: <a href="mailto:press@haierah.com" className="text-red-600">press@haierah.com</a></p>
+        <p className="text-slate-600">Email: <a href="mailto:press@haierah.com" className="text-red-600">contact our press team</a></p>
 
         <h2 className="text-xl font-semibold mt-4">Recent Coverage</h2>
         <ul className="list-disc pl-5 text-slate-600">
-          <li>HAIERAH Spring collection featured in Fashion Monthly.</li>
+          <li>Blue Whale Spring collection featured in Fashion Monthly.</li>
           <li>Designer interview on City Style Podcast.</li>
         </ul>
       </div>

@@ -1,24 +1,23 @@
 import { Outlet, useLocation } from "react-router-dom";
 import Navbar from "../Components/Navbar";
-import Footer from "../Components/Footer";
 import HomeFooter from "../Components/home/HomeFooter";
 
 export default function Layout() {
   const location = useLocation();
   const isHomePage = ["/", "/home"].includes(location.pathname);
   const isWomenPage = location.pathname === "/category/women";
-  const isMenPage = location.pathname.startsWith("/category/men");
+  const isMenPage = location.pathname === "/category/men";
   const isComboPage = location.pathname === "/products";
-  const useHomeFooter = isHomePage || isWomenPage || isMenPage || isComboPage;
+  const isCategoryProductsPage = ["/category/men/all", "/category/women/all"].includes(location.pathname);
 
   return (
     <>
       <Navbar />
 
-      <main className={`${isHomePage || isWomenPage ? "" : "pt-16 sm:pt-20"} overflow-x-hidden`}>
+      <main className={`${isHomePage || isWomenPage || isMenPage || isComboPage || isCategoryProductsPage ? "" : "pt-16 sm:pt-20"} overflow-x-hidden`}>
         <Outlet />
       </main>
-      {useHomeFooter ? <HomeFooter /> : <Footer />}
+      <HomeFooter />
     </>
   );
 }

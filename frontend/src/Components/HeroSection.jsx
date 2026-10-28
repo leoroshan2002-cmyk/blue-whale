@@ -80,7 +80,7 @@ export default function HeroSection() {
       >
 
         <button
-          onClick={() => navigate("/products")}
+          onClick={() => navigate("/shop")}
           className="bg-white text-black px-10 py-4 rounded-full hover:bg-gray-200 transition"
         >
           Explore Now

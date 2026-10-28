@@ -1,5 +1,6 @@
 import React from 'react';
 import Login from '../Pages/Login.jsx';
+import './index.css';
 import { AdminLayout } from './components/AdminLayout.jsx';
 import { useAdminController } from './hooks/useAdminController.jsx';
 

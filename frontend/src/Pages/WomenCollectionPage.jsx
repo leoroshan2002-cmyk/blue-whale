@@ -78,6 +78,7 @@ export default function WomenCollectionPage() {
   const location = useLocation();
   const [products, setProducts] = useState([]);
   const [productsError, setProductsError] = useState("");
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const [collections, setCollections] = useState([]);
   const [collectionsError, setCollectionsError] = useState("");
   const { addToCart } = useCart();
@@ -134,6 +135,8 @@ export default function WomenCollectionPage() {
           setProducts([]);
           setProductsError(error?.response?.data?.message || error?.message || "Unable to load products.");
         }
+      } finally {
+        if (!cancelled) setIsLoadingProducts(false);
       }
     };
     load();
@@ -242,11 +245,11 @@ export default function WomenCollectionPage() {
       <section id="collections" className="wc-collections">
         <div className="wc-section-heading" data-wc-reveal>
           <div><p className="wc-kicker wc-dark-kicker">EXPLORE OUR COLLECTIONS</p><h2>Find Your Perfect Style</h2></div>
-          <Link to="/products?category=women" className="wc-view-all">VIEW ALL <Arrow /></Link>
+          <Link to="/category/women/all" className="wc-view-all">VIEW ALL <Arrow /></Link>
         </div>
         <div className="wc-collection-grid">
           {collections.map((item) => (
-            <Link to={`/products?category=women&subcategory=${encodeURIComponent(item.name)}`} className="wc-collection-card" key={item.name} data-wc-reveal>
+            <Link to={`/category/women/all?subcategory=${encodeURIComponent(item.name)}`} className="wc-collection-card" key={item.name} data-wc-reveal>
               <img src={getSafeImageUrl(item.image, DEFAULT_IMAGE_FALLBACK)} alt={item.name} loading="lazy" onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }} />
               <div className="wc-card-shade" />
               <div className="wc-card-copy"><h3>{item.name}</h3><p>{item.subtitle}</p><span><Arrow /></span></div>
@@ -272,19 +275,19 @@ export default function WomenCollectionPage() {
       <section className="wc-featured">
         <div className="wc-section-heading" data-wc-reveal>
           <div><p className="wc-kicker wc-dark-kicker">FEATURED SAREES</p><h2>Elegant Choices for You</h2></div>
-          <Link to="/products" className="wc-view-all">VIEW ALL <Arrow /></Link>
+          <Link to="/category/women/all" className="wc-view-all">VIEW ALL <Arrow /></Link>
         </div>
         <div className="wc-product-grid">
-          {productsError ? <p role="alert">{productsError}</p> : womenProducts.map((product) => (
+          {productsError ? <p role="alert">{productsError}</p> : isLoadingProducts ? <p role="status">Loading sarees…</p> : womenProducts.length ? womenProducts.map((product) => (
             <EditorialProductCard key={product.id || product._id} product={product} onAddToCart={handleAddToCart} onWishlist={handleWishlist} wishlisted={isWishlisted(product.id)} />
-          ))}
+          )) : <p className="wc-products-empty">No sarees are available right now.</p>}
         </div>
       </section>
 
       <section className="wc-closing" data-wc-reveal>
         <img src={darkPinkImg} alt="Blue Whale Collection timeless saree" data-wc-parallax />
         <div className="wc-closing-overlay" />
-        <div className="wc-closing-copy"><p>TIMELESS. ROOTED. BLUE WHALE.</p><span>Drapes that celebrate you.</span><Link to="/products">EXPLORE NOW <Arrow /></Link></div>
+        <div className="wc-closing-copy"><p>TIMELESS. ROOTED. BLUE WHALE.</p><span>Drapes that celebrate you.</span><Link to="/category/women/all">EXPLORE NOW <Arrow /></Link></div>
       </section>
     </div>
   );

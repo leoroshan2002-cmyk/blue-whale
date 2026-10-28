@@ -20,7 +20,7 @@ const normalizeSubcategories = (category) => {
   });
 };
 
-function SubcategoryCardEditor({ card, index, onChange, onRemove }) {
+function SubcategoryCardEditor({ card, index, onChange, onRemove, isWide = false, className = '' }) {
   const [preview, setPreview] = useState('');
 
   useEffect(() => {
@@ -36,8 +36,8 @@ function SubcategoryCardEditor({ card, index, onChange, onRemove }) {
   const imageSource = preview || card.image;
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">
-      <div className="relative aspect-[16/9] bg-slate-100 dark:bg-slate-800">
+    <article className={`min-w-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 ${className} ${isWide ? 'xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)]' : ''}`}>
+      <div className={`relative aspect-[16/9] bg-slate-100 dark:bg-slate-800 ${isWide ? 'xl:aspect-auto xl:min-h-[24rem]' : ''}`}>
         <img
           src={getSafeImageUrl(imageSource, DEFAULT_IMAGE_FALLBACK)}
           alt={card.name ? `${card.name} card preview` : 'Subcategory card preview'}
@@ -57,7 +57,7 @@ function SubcategoryCardEditor({ card, index, onChange, onRemove }) {
         </button>
       </div>
 
-      <div className="space-y-4 p-4">
+      <div className="min-w-0 space-y-4 p-4 sm:p-5">
         <label className="block space-y-1.5">
           <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Subcategory name</span>
           <input
@@ -65,7 +65,7 @@ function SubcategoryCardEditor({ card, index, onChange, onRemove }) {
             onChange={(event) => onChange({ name: event.target.value })}
             required
             placeholder="e.g. Traditional Silk Sarees"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="block w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
           />
         </label>
 
@@ -75,18 +75,7 @@ function SubcategoryCardEditor({ card, index, onChange, onRemove }) {
             value={card.subtitle}
             onChange={(event) => onChange({ subtitle: event.target.value })}
             placeholder="A short line shown under the title"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
-          />
-        </label>
-
-        <label className="block space-y-1.5">
-          <span className="text-xs font-semibold text-slate-700 dark:text-slate-200">Image URL</span>
-          <input
-            type="url"
-            value={card.image}
-            onChange={(event) => onChange({ image: event.target.value, imageFile: null })}
-            placeholder="https://example.com/image.jpg"
-            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="block w-full min-w-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
           />
         </label>
 
@@ -195,8 +184,8 @@ export default function SubcategoriesView({ categories, onUpdateCategory }) {
   }
 
   return (
-    <form onSubmit={saveChanges} className="mx-auto max-w-7xl space-y-6">
-      <header className="flex flex-col gap-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 p-6 text-white shadow-sm sm:flex-row sm:items-end sm:justify-between">
+    <form onSubmit={saveChanges} className="mx-auto w-full max-w-screen-2xl space-y-5 sm:space-y-6">
+      <header className="flex min-w-0 flex-col gap-4 rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 p-5 text-white shadow-sm sm:p-6 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Storefront editor</p>
           <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Subcategory cards</h1>
@@ -205,32 +194,32 @@ export default function SubcategoriesView({ categories, onUpdateCategory }) {
         <button
           type="submit"
           disabled={isSaving || !selectedCategory}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 shadow transition hover:bg-amber-400 disabled:cursor-wait disabled:opacity-70"
+          className="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-3 text-sm font-bold text-slate-950 shadow transition hover:bg-amber-400 disabled:cursor-wait disabled:opacity-70 sm:w-auto"
         >
           {isSaving ? <LoaderCircle size={17} className="animate-spin" /> : <Save size={17} />}
           {isSaving ? 'Saving…' : 'Save changes'}
         </button>
       </header>
 
-      <div className="flex flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-end sm:justify-between">
-        <label className="block w-full max-w-sm space-y-2">
+      <div className="flex min-w-0 flex-col gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:flex-row sm:items-end sm:justify-between sm:p-5">
+        <label className="block w-full min-w-0 space-y-2 sm:max-w-sm">
           <span className="text-sm font-semibold text-slate-800 dark:text-slate-100">Choose collection</span>
           <select
             value={selectedCategoryId}
             onChange={(event) => setSelectedCategoryId(event.target.value)}
-            className="w-full rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+            className="block w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-medium text-slate-900 outline-none focus:border-amber-600 focus:ring-2 focus:ring-amber-600/15 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
           >
             {managedCategories.map((category) => (
               <option key={categoryId(category)} value={categoryId(category)}>{category.name}</option>
             ))}
           </select>
         </label>
-        <div className="text-sm text-slate-500 dark:text-slate-400">
+        <div className="text-sm text-slate-500 dark:text-slate-400 sm:shrink-0">
           {draftCards.length} {draftCards.length === 1 ? 'subcategory card' : 'subcategory cards'}
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h2 className="text-lg font-bold text-slate-900 dark:text-white">{selectedCategory?.name} cards</h2>
           <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Preview each image while you edit its title and subtitle.</p>
@@ -252,16 +241,21 @@ export default function SubcategoriesView({ categories, onUpdateCategory }) {
       )}
 
       {draftCards.length > 0 ? (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
-          {draftCards.map((card, index) => (
-            <SubcategoryCardEditor
-              key={`${selectedCategoryId}-${index}`}
-              card={card}
-              index={index}
-              onChange={(updates) => updateCard(index, updates)}
-              onRemove={() => removeCard(index)}
-            />
-          ))}
+        <div className="grid min-w-0 grid-cols-1 gap-4 xl:grid-cols-2 xl:gap-5">
+          {draftCards.map((card, index) => {
+            const isLastCardInIncompleteRow = index === draftCards.length - 1 && draftCards.length % 2 === 1;
+            return (
+              <SubcategoryCardEditor
+                key={`${selectedCategoryId}-${index}`}
+                card={card}
+                index={index}
+                isWide={isLastCardInIncompleteRow}
+                onChange={(updates) => updateCard(index, updates)}
+                onRemove={() => removeCard(index)}
+                className={isLastCardInIncompleteRow ? 'xl:col-span-2' : ''}
+              />
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-12 text-center dark:border-slate-700 dark:bg-slate-900">

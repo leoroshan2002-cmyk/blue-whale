@@ -6,6 +6,7 @@ const cartItemSchema = new mongoose.Schema(
     quantity: { type: Number, min: 1, required: true },
     selectedColor: { type: String, default: '' },
     selectedSize: { type: String, default: '' },
+    selectedImageIndex: { type: Number, min: 0, default: 0 },
   },
   { _id: false }
 );

@@ -149,6 +149,7 @@ export default function OrderSummary({ selectedPaymentMethod = "Cash on Delivery
                     quantity: Number(item.qty) || 1,
                     price: Number(item.price) || 0,
                     image: item.image || item.images?.[0] || "",
+                    selectedImageIndex: item.selectedImageIndex,
                     color: selectedColor,
                     size: selectedSize,
                     selectedColor,

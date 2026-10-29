@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TrackingTimeline from "./TrackingTimeline";
 import { resolveBackendImageUrl } from "../../services/api";
+import VariantColorLabel from "../VariantColorLabel";
 
 const escapeHtml = (value) => String(value ?? "")
   .replace(/&/g, "&amp;")
@@ -248,7 +249,7 @@ export default function OrderCard({ order, onDeleteOrder, onCancelOrder }) {
               </div>
 
               <p className="mt-4 text-gray-600">
-                <strong>Color:</strong> {item.color || item.selectedColor || "N/A"}
+                <VariantColorLabel color={item.color || item.selectedColor} hex={item.colorHex || item.selectedColorHex} />
               </p>
 
               <p className="text-gray-600">

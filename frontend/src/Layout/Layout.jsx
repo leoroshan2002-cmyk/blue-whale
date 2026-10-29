@@ -9,6 +9,7 @@ export default function Layout() {
   const isMenPage = location.pathname === "/category/men";
   const isComboPage = location.pathname === "/products";
   const isCategoryProductsPage = ["/category/men/all", "/category/women/all"].includes(location.pathname);
+  const isAccountPage = location.pathname === "/account";
 
   return (
     <>
@@ -17,7 +18,7 @@ export default function Layout() {
       <main className={`${isHomePage || isWomenPage || isMenPage || isComboPage || isCategoryProductsPage ? "" : "pt-16 sm:pt-20"} overflow-x-hidden`}>
         <Outlet />
       </main>
-      <HomeFooter />
+      {!isAccountPage && <HomeFooter />}
     </>
   );
 }

@@ -1,6 +1,7 @@
 import { Minus, Plus, Trash2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useCart } from "../Context/CartContext";
+import VariantColorLabel from "./VariantColorLabel";
 
 export default function OrderReview() {
   const {
@@ -25,7 +26,7 @@ export default function OrderReview() {
           cart.map((item) => {
             const itemKey = item.cartItemKey || item.id || item._id;
             const sizeLabel = item.selectedSize || item.size || "M";
-            const colorLabel = item.selectedColor || item.color || "Black";
+            const colorLabel = item.selectedColor || item.color;
 
             return (
               <motion.div
@@ -46,7 +47,7 @@ export default function OrderReview() {
                         {item.name}
                       </h3>
                       <p className="text-gray-500 mt-2">Size : {sizeLabel}</p>
-                      <p className="text-gray-500">Color : {colorLabel}</p>
+                      <p className="text-gray-500"><VariantColorLabel color={colorLabel} hex={item.selectedColorHex || item.colorHex} prefix="Color" /></p>
                     </div>
 
                     <div className="text-xl font-bold sm:text-2xl">

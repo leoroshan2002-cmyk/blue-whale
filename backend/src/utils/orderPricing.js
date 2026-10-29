@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import Coupon from '../models/Coupon.js';
 import Product from '../models/Product.js';
 import { evaluateCoupon } from './couponUtils.js';
+import { resolveProductColor, resolveProductImage } from './productVariants.js';
 
 const deliveryPrices = new Map([
   ['standard delivery', 0],
@@ -51,13 +52,22 @@ export const calculateOrderPricing = async (payload = {}) => {
       error.status = 400;
       throw error;
     }
+    const requestedColor = String(item?.color || item?.selectedColor || '').trim();
+    const selectedColor = resolveProductColor(product, requestedColor);
+    if (requestedColor && product.variants?.colors?.length && !selectedColor.found) {
+      const error = new Error(`The selected color is not available for ${product.name}.`);
+      error.status = 400;
+      throw error;
+    }
+    const selectedImage = resolveProductImage(product, item?.selectedImageIndex);
     normalizedItems.push({
       productId: product._id.toString(),
       name: product.name,
       quantity,
       price: roundCurrency(price),
-      image: Array.isArray(product.images) ? product.images[0] || '' : '',
-      color: String(item?.color || item?.selectedColor || '').trim(),
+      image: selectedImage.image,
+      color: selectedColor.name || requestedColor,
+      colorHex: selectedColor.hex,
       size: String(item?.size || item?.selectedSize || '').trim(),
     });
   }

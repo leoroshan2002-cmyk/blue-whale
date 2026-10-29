@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Printer, ChevronRight, MapPin, CreditCard, ChevronLeft, CheckCircle, Trash2 } from 'lucide-react';
 import { resolveBackendImageUrl } from '../../services/api';
+import VariantColorLabel from '../../Components/VariantColorLabel';
 
 export const OrdersView = ({
   orders,
@@ -341,7 +342,7 @@ export const OrdersView = ({
                         <h4 className="font-semibold text-slate-900 dark:text-white">{it.name}</h4>
                         <p className="text-xs text-slate-400 mt-1">Qty: {it.quantity}</p>
                         {(it.color || it.selectedColor) && (
-                          <p className="text-xs text-slate-500 mt-1">Color: {it.color || it.selectedColor}</p>
+                          <p className="text-xs text-slate-500 mt-1"><VariantColorLabel color={it.color || it.selectedColor} hex={it.colorHex || it.selectedColorHex} /></p>
                         )}
                         {(it.size || it.selectedSize) && (
                           <p className="text-xs text-slate-500">Size: {it.size || it.selectedSize}</p>

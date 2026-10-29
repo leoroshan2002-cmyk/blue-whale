@@ -11,3 +11,8 @@
 .bw-product-grid>div>article>a>div{height:100%!important}
 .bw-product-grid>div>article>div:last-child{height:auto!important}
 @media(max-width:700px){.bw-product-grid>div>article>a{height:66%!important}}
+
+.bw-color-options button:focus-visible,.bw-size-options button:focus-visible{outline:2px solid #8d6042;outline-offset:3px}
+.bw-size-options button{border:1px solid var(--bw-line);padding:10px 14px;background:transparent;color:#665b54;font:inherit;font-size:10px;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.bw-size-options button:hover,.bw-size-options button.active{border-color:#29201e;background:#29201e;color:#fff}
+.bw-selected-size{font-size:10px;color:#8b6b4e}

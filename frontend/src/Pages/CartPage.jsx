@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import gsap from "gsap";
 
 import { useCart } from "../Context/CartContext";
+import VariantColorLabel from "../Components/VariantColorLabel";
 import { useAuth } from "../Context/AuthContext";
 import RecommendationPage from "../Components/RecommendationPage";
 import PageBack from "../Components/CommonDetails/PageBack";
@@ -218,7 +219,7 @@ export default function CartPage() {
                         </p>
 
                         <p className="text-sm text-[#8a6c54]">
-                          Color: {item.selectedColor || item.color || "Cream"}
+                          <VariantColorLabel color={item.selectedColor || item.color} hex={item.selectedColorHex || item.colorHex} />
                         </p>
 
                         <div className="mt-4 flex flex-wrap items-center gap-3">

@@ -22,6 +22,7 @@ export default function ProductPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedColor, setSelectedColor] = useState(0);
+  const [selectedSize, setSelectedSize] = useState("");
   const [quantity, setQuantity] = useState(1);
   const { addToCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
@@ -31,6 +32,7 @@ export default function ProductPage() {
     let cancelled = false;
     setSelectedImage(0);
     setSelectedColor(0);
+    setSelectedSize("");
     setQuantity(1);
     const load = async () => {
       setIsLoading(true);
@@ -59,7 +61,8 @@ export default function ProductPage() {
   }, [id]);
 
   const images = useMemo(() => normalizeImageList(product?.images?.length ? product.images : [product?.image]), [product]);
-  const colors = Array.isArray(product?.colors) ? product.colors : [];
+  const colors = Array.isArray(product?.colors) ? product.colors : (product?.variants?.colors || []);
+  const sizes = Array.isArray(product?.sizes) ? product.sizes : (product?.variants?.sizes || []);
   const price = Number(product?.discountPrice ?? product?.salePrice ?? product?.price ?? 0);
   const originalPrice = Number(product?.originalPrice ?? product?.compareAtPrice ?? product?.price ?? 0);
   const discount = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
@@ -74,7 +77,7 @@ export default function ProductPage() {
   const stock = Number(product.stock ?? 0);
   const handleAdd = () => {
     if (stock <= 0) return;
-    const cartItem = { ...product, price, image: images[selectedImage] || product.image, images, selectedColor: colors.length ? colorName(selectedColorValue) : "", color: colors.length ? colorName(selectedColorValue) : "", selectedColorIndex: selectedColor, qty: quantity };
+    const cartItem = { ...product, price, image: images[selectedImage] || product.image, images, selectedImageIndex: selectedImage, selectedColor: colors.length ? colorName(selectedColorValue) : "", color: colors.length ? colorName(selectedColorValue) : "", selectedColorHex: colors.length ? colorHex(selectedColorValue) : "", selectedColorIndex: selectedColor, selectedSize, size: selectedSize, qty: quantity };
     if (!requireAuthAction("addToCart", cartItem)) return;
     addToCart(cartItem);
   };
@@ -98,9 +101,9 @@ export default function ProductPage() {
         <div className="bw-product-divider"/>
         {product.description && <p className="bw-product-description">{product.description}</p>}
         <div className="bw-product-specs">{(product.material || product.fabric) && <div><span>FABRIC</span><strong>{product.material || product.fabric}</strong></div>}{(product.category || product.subCategory || product.subcategory) && <div><span>COLLECTION</span><strong>{product.subCategory || product.subcategory || product.category}</strong></div>}{product.sku && <div><span>PRODUCT CODE</span><strong>{product.sku}</strong></div>}</div>
-        {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>{setSelectedColor(index);if(images[index])setSelectedImage(index);}}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
-        {Array.isArray(product.sizes)&&product.sizes.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>SIZE</span><button type="button" className="bw-size-help" onClick={()=>window.alert("Sarees are generally one-size drapes. Please check the product details for blouse-piece information.")}>Size guide</button></div><div className="bw-size-options">{product.sizes.map((size)=><span key={size}>{size}</span>)}</div></div>}
-        <div className="bw-buy-row"><div className="bw-quantity"><button type="button" onClick={()=>setQuantity((q)=>Math.max(1,q-1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{quantity}</span><button type="button" onClick={()=>setQuantity((q)=>Math.min(Math.max(stock,1),q+1))} aria-label="Increase quantity"><Plus size={14}/></button></div><button type="button" className="bw-add-cart" disabled={stock<=0} onClick={handleAdd}><ShoppingBag size={17}/>{stock<=0?"Currently unavailable":"Add to bag"}</button><button type="button" className={`bw-wishlist ${isWishlisted(product.id || product._id)?"saved":""}`} onClick={handleWishlist} aria-label="Add to wishlist"><Heart size={19} fill={isWishlisted(product.id || product._id)?"currentColor":"none"}/></button></div>
+        {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} aria-pressed={selectedColor===index} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>{setSelectedColor(index);if(images[index])setSelectedImage(index);}}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
+        {sizes.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>SIZE</span><span className="bw-selected-size">{selectedSize ? `Selected: ${selectedSize}` : "Choose a size"}</span></div><div className="bw-size-options" role="group" aria-label="Choose a size">{sizes.map((size)=><button key={size} type="button" className={selectedSize===size?"active":""} aria-pressed={selectedSize===size} onClick={()=>setSelectedSize(size)}>{size}</button>)}</div></div>}
+        <div className="bw-buy-row"><div className="bw-quantity"><button type="button" onClick={()=>setQuantity((q)=>Math.max(1,q-1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{quantity}</span><button type="button" onClick={()=>setQuantity((q)=>Math.min(Math.max(stock,1),q+1))} aria-label="Increase quantity"><Plus size={14}/></button></div><button type="button" className="bw-add-cart" disabled={stock<=0 || (sizes.length>0 && !selectedSize)} onClick={handleAdd}><ShoppingBag size={17}/>{stock<=0?"Currently unavailable":sizes.length>0 && !selectedSize?"Select a size":"Add to bag"}</button><button type="button" className={`bw-wishlist ${isWishlisted(product.id || product._id)?"saved":""}`} onClick={handleWishlist} aria-label="Add to wishlist"><Heart size={19} fill={isWishlisted(product.id || product._id)?"currentColor":"none"}/></button></div>
         <p className={`bw-stock ${stock>0?"in-stock":"out-stock"}`}><span/> {stock>0?"Ready to ship · In stock":"Currently out of stock"}</p>
         <div className="bw-promises"><div><Truck size={18}/><span><strong>Thoughtful delivery</strong><small>Carefully packed for you</small></span></div><div><ShieldCheck size={18}/><span><strong>Made to be treasured</strong><small>Quality you can feel</small></span></div></div>
         <details className="bw-detail-accordion"><summary>Product details <span>+</span></summary><p>{product.description || "A carefully selected piece from our collection."}</p>{product.care && <p>Care: {Array.isArray(product.care)?product.care.join(" · "):product.care}</p>}</details>

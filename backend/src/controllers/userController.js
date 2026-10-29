@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import User from '../models/User.js';
 import Product from '../models/Product.js';
 import { uploadToCloudinary } from '../middleware/cloudinaryStorage.js';
+import { resolveProductColor, resolveProductImage } from '../utils/productVariants.js';
 
 const profileFields = ['name', 'firstName', 'lastName', 'phone', 'gender', 'birthday', 'address', 'city', 'state', 'zip'];
 const productFields = 'name sku price discountPrice category subCategory stock description images variants status';
@@ -21,14 +22,21 @@ const toPopulatedCart = (cart = []) => cart
   .filter((entry) => entry.productId)
   .map((entry) => {
     const product = entry.productId.toObject ? entry.productId.toObject() : entry.productId;
+    const selectedColor = entry.selectedColor || '';
+    const selectedColorVariant = resolveProductColor(product, selectedColor);
+    const selectedImage = resolveProductImage(product, entry.selectedImageIndex);
     return {
       ...product,
       id: String(product._id),
       productId: String(product._id),
       qty: entry.quantity,
-      selectedColor: entry.selectedColor || '',
+      image: selectedImage.image,
+      selectedImageIndex: selectedImage.index,
+      selectedColor,
+      selectedColorHex: selectedColorVariant.hex,
       selectedSize: entry.selectedSize || '',
-      color: entry.selectedColor || '',
+      color: selectedColor,
+      colorHex: selectedColorVariant.hex,
       size: entry.selectedSize || '',
     };
   });
@@ -132,16 +140,25 @@ export const updateMyCart = async (req, res) => {
       if (!mongoose.isValidObjectId(productId) || !Number.isInteger(quantity) || quantity < 1) {
         return res.status(400).json({ success: false, message: 'Cart contains an invalid product or quantity.' });
       }
-      const product = await Product.findById(productId).select('stock name');
+      const product = await Product.findById(productId).select('stock name images variants');
       if (!product) return res.status(404).json({ success: false, message: 'A product in your cart no longer exists.' });
       if (quantity > product.stock) {
         return res.status(400).json({ success: false, message: `Only ${product.stock} item(s) of ${product.name} remain in stock.` });
       }
+      const selectedColor = String(item?.selectedColor || item?.color || '').trim();
+      if (selectedColor && product.variants?.colors?.length && !resolveProductColor(product, selectedColor).found) {
+        return res.status(400).json({ success: false, message: `The selected color is not available for ${product.name}.` });
+      }
+      const selectedImageIndex = Number(item?.selectedImageIndex ?? 0);
+      if (!Number.isInteger(selectedImageIndex) || selectedImageIndex < 0 || selectedImageIndex >= Math.max(product.images?.length || 0, 1)) {
+        return res.status(400).json({ success: false, message: `The selected product image is invalid for ${product.name}.` });
+      }
       nextCart.push({
         productId,
         quantity,
-        selectedColor: String(item?.selectedColor || item?.color || '').trim(),
+        selectedColor,
         selectedSize: String(item?.selectedSize || item?.size || '').trim(),
+        selectedImageIndex,
       });
     }
 

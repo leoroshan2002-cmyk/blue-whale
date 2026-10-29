@@ -27,8 +27,10 @@ const normalizeCartProduct = (product, quantity = 1) => {
     price: normalizedPrice,
     image: resolveImage(image),
     images: Array.isArray(product?.images) ? product.images.slice(0, 4).map(resolveImage) : [],
+    selectedImageIndex: Number.isInteger(Number(product?.selectedImageIndex)) ? Number(product.selectedImageIndex) : 0,
     qty: Number(quantity) > 0 ? Number(quantity) : 1,
     selectedColor: product?.selectedColor || product?.color || "",
+    selectedColorHex: product?.selectedColorHex || product?.colorHex || "",
     selectedSize: product?.selectedSize || product?.size || "",
     color: product?.selectedColor || product?.color || "",
     size: product?.selectedSize || product?.size || "",
@@ -110,6 +112,7 @@ export function CartProvider({ children }) {
       quantity: item.qty,
       selectedColor: item.selectedColor,
       selectedSize: item.selectedSize,
+      selectedImageIndex: item.selectedImageIndex,
     }));
     const request = saveQueue.current
       .then(async () => {
@@ -181,6 +184,7 @@ export function CartProvider({ children }) {
                 ...normalizedProduct,
                 selectedSize: normalizedProduct.selectedSize || item.selectedSize,
                 selectedColor: normalizedProduct.selectedColor || item.selectedColor,
+                selectedImageIndex: normalizedProduct.selectedImageIndex,
                 qty: nextQty,
                 cartItemKey,
               }

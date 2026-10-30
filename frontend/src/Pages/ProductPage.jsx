@@ -63,6 +63,12 @@ export default function ProductPage() {
   const images = useMemo(() => normalizeImageList(product?.images?.length ? product.images : [product?.image]), [product]);
   const colors = Array.isArray(product?.colors) ? product.colors : (product?.variants?.colors || []);
   const sizes = Array.isArray(product?.sizes) ? product.sizes : (product?.variants?.sizes || []);
+  const highlights = Array.isArray(product?.highlights)
+    ? product.highlights.filter((attribute) => attribute?.label && attribute?.value)
+    : [];
+  const additionalDetails = Array.isArray(product?.additionalDetails)
+    ? product.additionalDetails.filter((attribute) => attribute?.label && attribute?.value)
+    : [];
   const price = Number(product?.discountPrice ?? product?.salePrice ?? product?.price ?? 0);
   const originalPrice = Number(product?.originalPrice ?? product?.compareAtPrice ?? product?.price ?? 0);
   const discount = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
@@ -101,6 +107,16 @@ export default function ProductPage() {
         <div className="bw-product-divider"/>
         {product.description && <p className="bw-product-description">{product.description}</p>}
         <div className="bw-product-specs">{(product.material || product.fabric) && <div><span>FABRIC</span><strong>{product.material || product.fabric}</strong></div>}{(product.category || product.subCategory || product.subcategory) && <div><span>COLLECTION</span><strong>{product.subCategory || product.subcategory || product.category}</strong></div>}{product.sku && <div><span>PRODUCT CODE</span><strong>{product.sku}</strong></div>}</div>
+        {(highlights.length > 0 || additionalDetails.length > 0) && <section className="bw-product-attributes">
+          {highlights.length > 0 && <div className="bw-product-highlights">
+            <h2>Product highlights</h2>
+            <dl>{highlights.map((attribute, index) => <div key={`${attribute.label}-${index}`}><dt>{attribute.label}</dt><dd>{attribute.value}</dd></div>)}</dl>
+          </div>}
+          {additionalDetails.length > 0 && <details className="bw-detail-accordion bw-additional-details">
+            <summary>Additional details <span>+</span></summary>
+            <dl>{additionalDetails.map((attribute, index) => <div key={`${attribute.label}-${index}`}><dt>{attribute.label}</dt><dd>{attribute.value}</dd></div>)}</dl>
+          </details>}
+        </section>}
         {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} aria-pressed={selectedColor===index} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>{setSelectedColor(index);if(images[index])setSelectedImage(index);}}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
         {sizes.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>SIZE</span><span className="bw-selected-size">{selectedSize ? `Selected: ${selectedSize}` : "Choose a size"}</span></div><div className="bw-size-options" role="group" aria-label="Choose a size">{sizes.map((size)=><button key={size} type="button" className={selectedSize===size?"active":""} aria-pressed={selectedSize===size} onClick={()=>setSelectedSize(size)}>{size}</button>)}</div></div>}
         <div className="bw-buy-row"><div className="bw-quantity"><button type="button" onClick={()=>setQuantity((q)=>Math.max(1,q-1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{quantity}</span><button type="button" onClick={()=>setQuantity((q)=>Math.min(Math.max(stock,1),q+1))} aria-label="Increase quantity"><Plus size={14}/></button></div><button type="button" className="bw-add-cart" disabled={stock<=0 || (sizes.length>0 && !selectedSize)} onClick={handleAdd}><ShoppingBag size={17}/>{stock<=0?"Currently unavailable":sizes.length>0 && !selectedSize?"Select a size":"Add to bag"}</button><button type="button" className={`bw-wishlist ${isWishlisted(product.id || product._id)?"saved":""}`} onClick={handleWishlist} aria-label="Add to wishlist"><Heart size={19} fill={isWishlisted(product.id || product._id)?"currentColor":"none"}/></button></div>

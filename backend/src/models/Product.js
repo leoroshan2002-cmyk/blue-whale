@@ -1,5 +1,13 @@
 import mongoose from 'mongoose';
 
+const productAttributeSchema = new mongoose.Schema(
+  {
+    label: { type: String, trim: true, required: true },
+    value: { type: String, trim: true, default: '' },
+  },
+  { _id: false }
+);
+
 const productSchema = new mongoose.Schema(
   {
     name: {
@@ -42,6 +50,14 @@ const productSchema = new mongoose.Schema(
     description: {
       type: String,
       default: '',
+    },
+    highlights: {
+      type: [productAttributeSchema],
+      default: [],
+    },
+    additionalDetails: {
+      type: [productAttributeSchema],
+      default: [],
     },
     images: {
       type: [String],

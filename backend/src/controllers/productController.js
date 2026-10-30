@@ -65,6 +65,33 @@ const getUploadedFileUrl = (file) => {
   return '';
 };
 
+const parseProductAttributes = (attributes, fieldName) => {
+  let parsedAttributes = attributes;
+
+  if (typeof parsedAttributes === 'string') {
+    try {
+      parsedAttributes = JSON.parse(parsedAttributes);
+    } catch {
+      const error = new Error(`${fieldName} must be a valid list of label and value pairs.`);
+      error.statusCode = 400;
+      throw error;
+    }
+  }
+
+  if (!Array.isArray(parsedAttributes)) {
+    const error = new Error(`${fieldName} must be a list of label and value pairs.`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return parsedAttributes
+    .map((attribute) => ({
+      label: String(attribute?.label || '').trim(),
+      value: String(attribute?.value || '').trim(),
+    }))
+    .filter((attribute) => attribute.label);
+};
+
 const parseProductPayload = (body, files = []) => {
   const payload = { ...body };
 
@@ -100,6 +127,12 @@ const parseProductPayload = (body, files = []) => {
     sizes: Array.isArray(payload.variants.sizes) ? payload.variants.sizes.filter(Boolean) : [],
     colors: Array.isArray(payload.variants.colors) ? payload.variants.colors.filter((color) => color && (color.name || color.hex)) : [],
   };
+
+  for (const field of ['highlights', 'additionalDetails']) {
+    if (payload[field] !== undefined) {
+      payload[field] = parseProductAttributes(payload[field], field === 'highlights' ? 'Highlights' : 'Additional details');
+    }
+  }
 
   const imageInput = payload.images ?? payload.imageUrls;
   let parsedImages = [];
@@ -152,7 +185,7 @@ export const buildProductUpdatePayload = (existingProduct, body, files = []) => 
       return;
     }
 
-    if (Array.isArray(value) && value.length === 0) {
+    if (Array.isArray(value) && value.length === 0 && !['highlights', 'additionalDetails'].includes(key)) {
       return;
     }
 
@@ -215,6 +248,10 @@ export const getProductById = async (req, res) => {
 };
 
 const sendProductError = (res, error) => {
+  if (error?.statusCode === 400) {
+    return res.status(400).json({ success: false, message: error.message });
+  }
+
   if (error && error.code === 11000) {
     const duplicateField = Object.keys(error.keyPattern || error.keyValue || {})[0] || 'field';
     const message = duplicateField === 'sku'

@@ -2,6 +2,103 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Plus, Trash2, Edit, UploadCloud, X, RefreshCw, FileSpreadsheet, Check, Eye } from 'lucide-react';
 import { normalizeImageList } from '../../utils/productImages';
 
+const normalizeProductAttributes = (attributes = []) => (
+  Array.isArray(attributes)
+    ? attributes
+      .filter((attribute) => attribute && typeof attribute === 'object')
+      .map((attribute) => ({
+        label: String(attribute.label || ''),
+        value: String(attribute.value || '')
+      }))
+    : []
+);
+
+const DEFAULT_ADDITIONAL_DETAILS = [
+  'Color',
+  'Occasion',
+  'Type',
+  'Blouse Fabric',
+  'Border',
+  'Ornamentation',
+  'Pattern',
+  'Print or Pattern Type',
+  'Blouse Pattern',
+  'Pallu Details',
+  'Blouse Color',
+  'Loom Type',
+  'Border Width',
+  'Brand',
+  'Generic Name',
+  'Country of Origin'
+];
+
+const createDefaultAdditionalDetails = () => (
+  DEFAULT_ADDITIONAL_DETAILS.map((label) => ({ label, value: '' }))
+);
+
+const ProductAttributeFields = ({ title, rows, setRows }) => {
+  const updateRow = (index, field, value) => {
+    setRows((current) => current.map((row, rowIndex) => (
+      rowIndex === index ? { ...row, [field]: value } : row
+    )));
+  };
+
+  return (
+    <section className="space-y-3 rounded-xl border border-slate-200 dark:border-slate-800 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h4 className="text-[11px] font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">{title}</h4>
+          <p className="mt-1 text-[10px] text-slate-400">Add the product labels and values customers should see.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setRows((current) => [...current, { label: '', value: '' }])}
+          className="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 px-2.5 py-2 text-[10px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          Add field
+        </button>
+      </div>
+      {rows.length === 0 ? (
+        <p className="rounded-lg bg-slate-50 px-3 py-4 text-center text-[10px] text-slate-400 dark:bg-slate-950">
+          No fields added yet.
+        </p>
+      ) : (
+        <div className="space-y-2">
+          {rows.map((row, index) => (
+            <div key={`${title}-${index}`} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+              <input
+                type="text"
+                value={row.label}
+                onChange={(event) => updateRow(index, 'label', event.target.value)}
+                aria-label={`${title} label ${index + 1}`}
+                placeholder="Label (e.g. Saree Fabric)"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+              <input
+                type="text"
+                value={row.value}
+                onChange={(event) => updateRow(index, 'value', event.target.value)}
+                aria-label={`${title} value ${index + 1}`}
+                placeholder="Value (e.g. Banarasi Silk)"
+                className="min-w-0 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs dark:border-slate-800 dark:bg-slate-950 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setRows((current) => current.filter((_, rowIndex) => rowIndex !== index))}
+                aria-label={`Remove ${title} field ${index + 1}`}
+                className="rounded-lg border border-slate-200 px-2 text-slate-400 hover:border-rose-200 hover:text-rose-500 dark:border-slate-800"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  );
+};
+
 export const ProductsView = ({
   products,
   categories,
@@ -40,6 +137,8 @@ export const ProductsView = ({
   const [formSubCategory, setFormSubCategory] = useState('');
   const [formStock, setFormStock] = useState('');
   const [formDescription, setFormDescription] = useState('');
+  const [formHighlights, setFormHighlights] = useState([]);
+  const [formAdditionalDetails, setFormAdditionalDetails] = useState([]);
   const [formImages, setFormImages] = useState([]);
   const previewUrlsRef = useRef([]);
 
@@ -458,6 +557,8 @@ export const ProductsView = ({
     setFormSubCategory(defaultSubcategory);
     setFormStock('');
     setFormDescription('');
+    setFormHighlights([]);
+    setFormAdditionalDetails(createDefaultAdditionalDetails());
     setFormImages([]);
     setFormImageFiles([]);
     setFormSizes(['S', 'M', 'L']);
@@ -483,6 +584,8 @@ export const ProductsView = ({
     );
     setFormStock(p.stock.toString());
     setFormDescription(p.description);
+    setFormHighlights(normalizeProductAttributes(p.highlights));
+    setFormAdditionalDetails(normalizeProductAttributes(p.additionalDetails));
     setFormImages(Array.isArray(p.images) ? p.images : []);
     setFormImageFiles([]);
     setFormSizes(p.variants?.sizes || []);
@@ -522,6 +625,10 @@ export const ProductsView = ({
         sizes: normalizedSizes,
         colors: normalizedColors
       },
+      highlights: normalizeProductAttributes(formHighlights)
+        .filter((attribute) => attribute.label.trim() && attribute.value.trim()),
+      additionalDetails: normalizeProductAttributes(formAdditionalDetails)
+        .filter((attribute) => attribute.label.trim()),
       description: formDescription || 'Premium luxury designed item belonging to the new Hyra apparel drops.',
       status: 'Active',
       createdAt: editingProduct ? editingProduct.createdAt : new Date().toISOString()
@@ -1493,6 +1600,19 @@ export const ProductsView = ({
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="Detail the materials used (linen weave, cashmere density), closures, lapels, and fits of the Hyra styled item..."
                   className="w-full border border-slate-200 p-2 rounded-lg bg-slate-50 dark:bg-slate-950 dark:text-white focus:outline-none"
+                />
+              </div>
+
+              <div className="grid gap-4 lg:grid-cols-2">
+                <ProductAttributeFields
+                  title="Product highlights"
+                  rows={formHighlights}
+                  setRows={setFormHighlights}
+                />
+                <ProductAttributeFields
+                  title="Additional details"
+                  rows={formAdditionalDetails}
+                  setRows={setFormAdditionalDetails}
                 />
               </div>
 

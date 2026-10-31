@@ -93,11 +93,65 @@ export default function ProductPage() {
   return <main className="bw-product-page">
     <div className="bw-product-breadcrumb"><Link to={categoryPath}><ArrowLeft size={15}/> Back to collection</Link><span>BLUE WHALE / {product.category || "COLLECTION"} / {product.name}</span></div>
     <section className="bw-product-detail">
-      <motion.div className="bw-product-gallery" initial={{opacity:0,x:-28}} animate={{opacity:1,x:0}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
-        <div className="bw-product-main-image"><img key={images[selectedImage] || product.image} src={getSafeImageUrl(images[selectedImage] || product.image, DEFAULT_IMAGE_FALLBACK)} alt={product.name} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/><span className="bw-image-caption">CRAFTED WITH CARE · BLUE WHALE</span>{discount > 0 && <span className="bw-discount-tag">-{discount}%</span>}</div>
-        <div className="bw-product-thumbs">{(images.length ? images : [product.image]).filter(Boolean).map((image,index)=><button type="button" key={`${image}-${index}`} onClick={()=>setSelectedImage(index)} className={selectedImage===index?"active":""} aria-label={`View product image ${index+1}`}><img src={getSafeImageUrl(image,DEFAULT_IMAGE_FALLBACK)} alt={`${product.name} view ${index+1}`} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/></button>)}</div>
-        <div className="bw-image-note"><span>✳</span><p>Every weave holds a story. Make this one yours.</p></div>
-      </motion.div>
+      
+  <motion.div
+  className="bw-product-gallery"
+  initial={{ opacity: 0, x: -28 }}
+  animate={{ opacity: 1, x: 0 }}
+  transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+>
+  <div className="bw-product-main-image">
+    <img
+      key={images[selectedImage] || product.image}
+      src={getSafeImageUrl(
+        images[selectedImage] || product.image,
+        DEFAULT_IMAGE_FALLBACK
+      )}
+      alt={product.name}
+      onError={(e) => {
+        e.currentTarget.src = DEFAULT_IMAGE_FALLBACK;
+      }}
+    />
+
+    <span className="bw-image-caption">
+      CRAFTED WITH CARE · BLUE WHALE
+    </span>
+
+    {discount > 0 && (
+      <span className="bw-discount-tag">
+        -{discount}%
+      </span>
+    )}
+  </div>
+
+  {images.length > 1 && (
+    <div className="bw-product-thumbs">
+      {images.map((image, index) => (
+        <button
+          type="button"
+          key={`${image}-${index}`}
+          onClick={() => setSelectedImage(index)}
+          className={selectedImage === index ? "active" : ""}
+          aria-label={`View product image ${index + 1}`}
+        >
+          <img
+            src={getSafeImageUrl(image, DEFAULT_IMAGE_FALLBACK)}
+            alt={`${product.name} view ${index + 1}`}
+            onError={(e) => {
+              e.currentTarget.src = DEFAULT_IMAGE_FALLBACK;
+            }}
+          />
+        </button>
+      ))}
+    </div>
+  )}
+
+  <div className="bw-image-note">
+    <span>✳</span>
+    <p>Every weave holds a story. Make this one yours.</p>
+  </div>
+</motion.div>
+
       <motion.div className="bw-product-info" initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.8,delay:.12,ease:[.22,1,.36,1]}}>
         <p className="bw-eyebrow bw-eyebrow-dark">{product.brand || "BLUE WHALE COLLECTION"}</p>
         <h1>{product.name}</h1>

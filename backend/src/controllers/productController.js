@@ -10,12 +10,7 @@ const publicProductImagesStage = {
         as: 'image',
         in: {
           $cond: [
-            {
-              $or: [
-                { $regexMatch: { input: '$$image', regex: /^data:/i } },
-                { $regexMatch: { input: '$$image', regex: /^blob:/i } },
-              ],
-            },
+            { $regexMatch: { input: '$$image', regex: /^data:/i } },
             '__PUBLIC_PRODUCT_IMAGE__',
             '$$image',
           ],
@@ -57,10 +52,10 @@ const toProductResponse = (product, { useImageEndpoint = false } = {}) => {
   doc.id = String(doc.id || doc._id);
   delete doc._id;
   doc.images = (doc.images || [])
-    .map((img, index) => img === '__PUBLIC_PRODUCT_IMAGE__' && useImageEndpoint
+    .map((img, index) => (img === '__PUBLIC_PRODUCT_IMAGE__' || /^data:image\//i.test(img)) && useImageEndpoint
       ? `/api/products/${doc.id}/image/${index}`
       : img)
-    .filter((img) => typeof img === 'string' && img);
+    .filter((img) => typeof img === 'string' && img && !img.startsWith('blob:'));
   doc.image = doc.images[0] || (useImageEndpoint ? `/api/products/${doc.id}/image` : '');
   doc.colors = doc.variants?.colors || [];
   doc.sizes = doc.variants?.sizes || [];
@@ -225,7 +220,17 @@ export const buildProductUpdatePayload = (existingProduct, body, files = []) => 
   });
 
   updatePayload.images = (Array.isArray(updatePayload.images) && updatePayload.images.length > 0)
-    ? updatePayload.images.filter((img) => typeof img === 'string' && img.trim() && !img.startsWith('blob:'))
+    ? updatePayload.images
+      .filter((img) => typeof img === 'string' && img.trim() && !img.startsWith('blob:'))
+      .map((img) => {
+        const imageEndpoint = img.match(/(?:^|\/)api\/products\/([^/]+)\/image(?:\/(\d+))?\/?$/i);
+        const productId = String(existingData._id || existingData.id || '');
+        if (imageEndpoint?.[1] !== productId) return img;
+
+        const imageIndex = Number(imageEndpoint[2] || 0);
+        const existingImage = existingData.images?.[imageIndex];
+        return typeof existingImage === 'string' ? existingImage : img;
+      })
     : (Array.isArray(existingData.images) ? existingData.images : []);
 
   if (updatePayload.variants && typeof updatePayload.variants === 'object') {
@@ -246,7 +251,7 @@ export const listProducts = async (req, res) => {
           publicProductImagesStage,
         ])
       : await Product.find().sort({ createdAt: -1 });
-    const products = rawProducts.map((product) => toProductResponse(product, { useImageEndpoint: isPublicProductRoute(req) }));
+    const products = rawProducts.map((product) => toProductResponse(product, { useImageEndpoint: true }));
     res.status(200).json({ success: true, products });
   } catch (error) {
     console.error('Failed to load products:', error);
@@ -269,7 +274,7 @@ export const getProductById = async (req, res) => {
     if (product) {
       return res.status(200).json({
         success: true,
-        product: toProductResponse(product, { useImageEndpoint: isPublicProductRoute(req) }),
+        product: toProductResponse(product, { useImageEndpoint: true }),
       });
     }
 
@@ -353,7 +358,7 @@ export const createProduct = async (req, res) => {
     }
 
     const product = await Product.create(payload);
-    res.status(201).json({ success: true, product: toProductResponse(product) });
+    res.status(201).json({ success: true, product: toProductResponse(product, { useImageEndpoint: true }) });
   } catch (error) {
     return sendProductError(res, error);
   }
@@ -386,7 +391,7 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    res.status(200).json({ success: true, product: toProductResponse(updatedProduct) });
+    res.status(200).json({ success: true, product: toProductResponse(updatedProduct, { useImageEndpoint: true }) });
   } catch (error) {
     return sendProductError(res, error);
   }

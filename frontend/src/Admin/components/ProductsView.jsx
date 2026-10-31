@@ -18,6 +18,22 @@ const createDefaultAdditionalDetails = () => (
   DEFAULT_ADDITIONAL_DETAILS.map((label) => ({ label, value: '' }))
 );
 
+const PRODUCT_COLOR_PRESETS = [
+  { name: 'Black', hex: '#000000' },
+  { name: 'White', hex: '#FFFFFF' },
+  { name: 'Gray', hex: '#808080' },
+  { name: 'Navy', hex: '#000080' },
+  { name: 'Blue', hex: '#2563EB' },
+  { name: 'Red', hex: '#DC2626' },
+  { name: 'Pink', hex: '#EC4899' },
+  { name: 'Purple', hex: '#7C3AED' },
+  { name: 'Green', hex: '#16A34A' },
+  { name: 'Yellow', hex: '#EAB308' },
+  { name: 'Orange', hex: '#EA580C' },
+  { name: 'Brown', hex: '#78350F' },
+  { name: 'Beige', hex: '#D6C1A5' },
+];
+
 const ProductAttributeFields = ({ title, rows, setRows }) => {
   const updateRow = (index, field, value) => {
     setRows((current) => current.map((row, rowIndex) => (
@@ -206,6 +222,8 @@ export const ProductsView = ({
   // Custom color creator inside form
   const [newColorName, setNewColorName] = useState('');
   const [newColorHex, setNewColorHex] = useState('#000000');
+  const [isManualColorFormOpen, setIsManualColorFormOpen] = useState(false);
+  const [isExtractingColors, setIsExtractingColors] = useState(false);
   
   // Active color for image preview
   const [activeColorIndex, setActiveColorIndex] = useState(0);
@@ -316,62 +334,126 @@ export const ProductsView = ({
     return `${cleanName}-${cleanColor}-${skuPart}-${colorIndex + 1}`;
   };
 
-  // EXTRACT DOMINANT COLOR FROM IMAGE
-  const extractColorFromImage = (imageUrl) => {
-    return new Promise((resolve) => {
-      if (!imageUrl || typeof imageUrl !== 'string') {
-        resolve('#808080');
-        return;
+  const loadImageForColorAnalysis = (imageUrl) => new Promise((resolve, reject) => {
+    if (!imageUrl || typeof imageUrl !== 'string') {
+      reject(new Error('The image URL is invalid.'));
+      return;
+    }
+
+    const image = new Image();
+    if (/^https?:\/\//i.test(imageUrl)) image.crossOrigin = 'anonymous';
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error('The image could not be loaded for color analysis.'));
+    image.src = imageUrl;
+  });
+
+  const readImagePixel = (image, x, y) => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Your browser could not create a color sampler.');
+
+    canvas.width = 1;
+    canvas.height = 1;
+    context.drawImage(image, x, y, 1, 1, 0, 0, 1, 1);
+    let pixel;
+    try {
+      pixel = context.getImageData(0, 0, 1, 1).data;
+    } catch {
+      throw new Error('This image cannot be sampled. Remote images must allow CORS; upload the image to sample it.');
+    }
+    const [red, green, blue, alpha] = pixel;
+    if (alpha < 200) throw new Error('Choose a visible part of the product image.');
+    return `#${((red << 16) | (green << 8) | blue).toString(16).padStart(6, '0').toUpperCase()}`;
+  };
+
+  // EXTRACT THE MOST COMMON COLOR FROM THE CENTRAL PRODUCT AREA, NOT THE BACKGROUND.
+  const extractColorFromImage = async (imageUrl) => {
+    const image = await loadImageForColorAnalysis(imageUrl);
+    const scale = Math.min(1, 96 / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    if (!context) throw new Error('Your browser could not create a color sampler.');
+
+    canvas.width = width;
+    canvas.height = height;
+    context.drawImage(image, 0, 0, width, height);
+    let pixels;
+    try {
+      pixels = context.getImageData(0, 0, width, height).data;
+    } catch {
+      throw new Error('This image cannot be analyzed. Remote images must allow CORS; upload the image instead.');
+    }
+
+    const colorBuckets = new Map();
+    const startX = Math.floor(width * 0.15);
+    const endX = Math.max(startX + 1, Math.ceil(width * 0.85));
+    const startY = Math.floor(height * 0.28);
+    const endY = Math.max(startY + 1, Math.ceil(height * 0.74));
+
+    for (let y = startY; y < endY; y += 1) {
+      for (let x = startX; x < endX; x += 1) {
+        const pixelIndex = (y * width + x) * 4;
+        const red = pixels[pixelIndex];
+        const green = pixels[pixelIndex + 1];
+        const blue = pixels[pixelIndex + 2];
+        if (pixels[pixelIndex + 3] < 200) continue;
+
+        const key = `${Math.floor(red / 24)}-${Math.floor(green / 24)}-${Math.floor(blue / 24)}`;
+        const bucket = colorBuckets.get(key) || { count: 0, red: 0, green: 0, blue: 0 };
+        bucket.count += 1;
+        bucket.red += red;
+        bucket.green += green;
+        bucket.blue += blue;
+        bucket.maxBrightness = Math.max(bucket.maxBrightness ?? 0, red, green, blue);
+        colorBuckets.set(key, bucket);
       }
+    }
 
-      const isRemoteImage = /^https?:\/\//i.test(imageUrl) || imageUrl.startsWith('data:');
-      if (isRemoteImage) {
-        resolve('#808080');
-        return;
-      }
+    const buckets = [...colorBuckets.values()];
+    const darkBuckets = buckets.filter((bucket) => bucket.maxBrightness <= 80);
+    const darkPixelCount = darkBuckets.reduce((total, bucket) => total + bucket.count, 0);
+    const dominantBucket = darkPixelCount >= buckets.reduce((total, bucket) => total + bucket.count, 0) * 0.1
+      ? darkBuckets.sort((a, b) => b.count - a.count)[0]
+      : buckets.sort((a, b) => b.count - a.count)[0];
+    if (!dominantBucket) throw new Error('No visible product color could be found in this image.');
 
-      const img = new Image();
-      img.onload = () => {
-        try {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d');
-          if (!ctx) {
-            resolve('#808080');
-            return;
-          }
+    const red = Math.round(dominantBucket.red / dominantBucket.count);
+    const green = Math.round(dominantBucket.green / dominantBucket.count);
+    const blue = Math.round(dominantBucket.blue / dominantBucket.count);
+    return `#${((red << 16) | (green << 8) | blue).toString(16).padStart(6, '0').toUpperCase()}`;
+  };
 
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0);
+  const sampleExactColorFromImage = async (imageUrl, event) => {
+    const imageElement = event.currentTarget;
+    const bounds = imageElement.getBoundingClientRect();
+    if (!imageElement.naturalWidth || !imageElement.naturalHeight) {
+      alert('Wait for the product image to finish loading, then try again.');
+      return;
+    }
+    const scale = Math.max(bounds.width / imageElement.naturalWidth, bounds.height / imageElement.naturalHeight);
+    const renderedWidth = imageElement.naturalWidth * scale;
+    const renderedHeight = imageElement.naturalHeight * scale;
+    const offsetX = (renderedWidth - bounds.width) / 2;
+    const offsetY = (renderedHeight - bounds.height) / 2;
+    const x = Math.floor((event.clientX - bounds.left + offsetX) / scale);
+    const y = Math.floor((event.clientY - bounds.top + offsetY) / scale);
 
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const data = imageData.data;
-          const colors = {};
-
-          for (let i = 0; i < data.length; i += 16) {
-            const r = data[i];
-            const g = data[i + 1];
-            const b = data[i + 2];
-            const a = data[i + 3];
-
-            if (a < 200) continue;
-
-            const isGrayscale = Math.abs(r - g) < 30 && Math.abs(g - b) < 30 && Math.abs(r - b) < 30;
-            if (isGrayscale) continue;
-
-            const hexColor = `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0').toUpperCase()}`;
-            colors[hexColor] = (colors[hexColor] || 0) + 1;
-          }
-
-          const dominantColor = Object.keys(colors).reduce((a, b) => colors[a] > colors[b] ? a : b, '#808080');
-          resolve(dominantColor);
-        } catch {
-          resolve('#808080');
+    try {
+      const image = await loadImageForColorAnalysis(imageUrl);
+      const exactHex = readImagePixel(image, x, y);
+      setFormColors((currentColors) => {
+        if (currentColors[activeColorIndex]) {
+          return currentColors.map((color, index) => (
+            index === activeColorIndex ? { ...color, hex: exactHex } : color
+          ));
         }
-      };
-      img.onerror = () => resolve('#808080');
-      img.src = imageUrl;
-    });
+        return [...currentColors, { name: hexToColorName(exactHex), hex: exactHex }];
+      });
+    } catch (error) {
+      alert(error.message || 'Could not sample a color from this image.');
+    }
   };
 
   // EXTRACT AND ADD COLORS FROM ALL IMAGES
@@ -380,38 +462,65 @@ export const ProductsView = ({
       alert('Please upload at least one image first.');
       return;
     }
-    
+
+    setIsExtractingColors(true);
     const newColors = [];
     const newColorMap = { ...imageColorMap };
-    
-    for (let idx = 0; idx < formImages.length; idx++) {
-      const imageUrl = formImages[idx];
-      const hexColor = await extractColorFromImage(imageUrl);
-      
-      // Check if this color already exists
-      const existingColorIndex = formColors.findIndex(c => c.hex.toUpperCase() === hexColor.toUpperCase());
-      
-      if (existingColorIndex >= 0) {
-        // Color exists, associate image with it
-        newColorMap[imageUrl] = existingColorIndex;
-      } else {
-        // New color, add it
-        const colorName = hexToColorName(hexColor);
-        const newColorIndex = formColors.length + newColors.length;
-        newColors.push({ name: colorName, hex: hexColor });
-        // Associate image with new color
-        newColorMap[imageUrl] = newColorIndex;
+
+    const failedImages = [];
+    try {
+      for (const imageUrl of formImages) {
+        let hexColor;
+        try {
+          hexColor = await extractColorFromImage(imageUrl);
+        } catch {
+          failedImages.push(imageUrl);
+          continue;
+        }
+
+        const colorsSoFar = [...formColors, ...newColors];
+        const exactColorIndex = colorsSoFar.findIndex((color) => color.hex?.toUpperCase() === hexColor);
+        const [red, green, blue] = hexColor.match(/\w\w/g).map((value) => parseInt(value, 16));
+        const closestColorIndex = exactColorIndex >= 0
+          ? exactColorIndex
+          : colorsSoFar.reduce((closest, color, index) => {
+            const colorChannels = color.hex?.match(/^#([\da-f]{2})([\da-f]{2})([\da-f]{2})$/i);
+            if (!colorChannels) return closest;
+            const distance = Math.hypot(
+              red - parseInt(colorChannels[1], 16),
+              green - parseInt(colorChannels[2], 16),
+              blue - parseInt(colorChannels[3], 16)
+            );
+            return distance < closest.distance ? { index, distance } : closest;
+          }, { index: -1, distance: Infinity });
+        const existingColorIndex = exactColorIndex >= 0
+          ? exactColorIndex
+          : closestColorIndex.distance <= 48
+            ? closestColorIndex.index
+            : -1;
+        if (existingColorIndex >= 0) {
+          newColorMap[imageUrl] = existingColorIndex;
+        } else {
+          const colorName = hexToColorName(hexColor);
+          const newColorIndex = formColors.length + newColors.length;
+          newColors.push({ name: colorName, hex: hexColor });
+          newColorMap[imageUrl] = newColorIndex;
+        }
       }
-    }
-    
-    if (newColors.length > 0) {
-      setFormColors([...formColors, ...newColors]);
+
+      if (newColors.length > 0) {
+        setFormColors((currentColors) => [...currentColors, ...newColors]);
+      }
       setImageColorMap(newColorMap);
-      alert(` Added ${newColors.length} color(s) from images!\n\nImages are now organized by color.`);
-    } else {
-      // Update color associations even if no new colors
-      setImageColorMap(newColorMap);
-      alert('All image colors already exist! Images have been organized by their matching colors.');
+      if (failedImages.length > 0) {
+        alert(`Analyzed ${formImages.length - failedImages.length} image(s) and added ${newColors.length} color(s). ${failedImages.length} image(s) could not be read. Remote images must allow CORS; upload those images instead.`);
+      } else if (newColors.length > 0) {
+        alert(`Added ${newColors.length} color(s) from images. Click the product image to sample an exact pixel color.`);
+      } else {
+        alert('All image colors already exist! Images have been organized by their matching colors.');
+      }
+    } finally {
+      setIsExtractingColors(false);
     }
   };
 
@@ -547,6 +656,9 @@ export const ProductsView = ({
     setFormColors([
       
     ]);
+    setNewColorName('');
+    setNewColorHex('#000000');
+    setIsManualColorFormOpen(false);
     setActiveColorIndex(0);
     setImageColorMap({});
     setIsEditorOpen(true);
@@ -572,6 +684,9 @@ export const ProductsView = ({
     setFormImageFiles([]);
     setFormSizes(p.variants?.sizes || []);
     setFormColors(p.variants?.colors || []);
+    setNewColorName('');
+    setNewColorHex('#000000');
+    setIsManualColorFormOpen(false);
     setActiveColorIndex(0);
     const savedImageColorMap = Object.fromEntries(
       (p.variants?.colors || []).flatMap((color, colorIndex) =>
@@ -737,10 +852,28 @@ export const ProductsView = ({
 
   // COLORS ADD / REMOVE
   const addFormColor = () => {
-    if (newColorName.trim()) {
-      setFormColors([...formColors, { name: newColorName.trim(), hex: newColorHex }]);
-      setNewColorName('');
+    const colorHex = newColorHex.trim().toUpperCase();
+    if (!/^#[\da-f]{6}$/i.test(colorHex)) {
+      alert('Enter a valid 6-digit HEX color, such as #000000.');
+      return false;
     }
+    const colorName = newColorName.trim() || `Custom ${colorHex}`;
+
+    const existingIndex = formColors.findIndex(
+      (color) => color.name?.trim().toLowerCase() === colorName.toLowerCase()
+    );
+    if (existingIndex >= 0) {
+      alert('A color with this name already exists.');
+      setActiveColorIndex(existingIndex);
+      return false;
+    }
+
+    const newIndex = formColors.length;
+    setFormColors((currentColors) => [...currentColors, { name: colorName, hex: colorHex }]);
+    setActiveColorIndex(newIndex);
+    setNewColorName('');
+    setIsManualColorFormOpen(false);
+    return true;
   };
 
   const removeFormColor = (index) => {
@@ -1667,7 +1800,7 @@ export const ProductsView = ({
                   {/* COLOR PALETTE SECTION */}
                   <div className="space-y-2.5">
                     <div className="text-[10px] font-black uppercase tracking-wider text-slate-500">Color Palette</div>
-                    
+
                     <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
                       {formColors.map((col, index) => {
                         const imagesInColor = getImagesForColor(index).length;
@@ -1703,19 +1836,113 @@ export const ProductsView = ({
                       
                       {/* Add Color Button */}
                       {formColors.length < 12 && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (newColorName.trim()) {
-                              addFormColor();
-                            }
-                          }}
-                          className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all text-slate-400 hover:text-amber-600"
-                          title="Add new color"
-                        >
-                          <span className="text-lg font-bold">+</span>
-                          <span className="text-[7px] font-bold uppercase tracking-wider">New</span>
-                        </button>
+                        isManualColorFormOpen ? (
+                          <div className="col-span-full rounded-lg border border-amber-300 bg-white p-3 dark:border-amber-700 dark:bg-slate-900">
+                            <div className="space-y-3">
+                              <div>
+                                <span className="mb-1.5 block text-[9px] font-semibold text-slate-500">Choose a preset color</span>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {PRODUCT_COLOR_PRESETS.map((preset) => {
+                                    const isSelected = newColorHex.toUpperCase() === preset.hex;
+                                    return (
+                                      <button
+                                        key={preset.name}
+                                        type="button"
+                                        onClick={() => {
+                                          setNewColorHex(preset.hex);
+                                          setNewColorName(preset.name);
+                                        }}
+                                        aria-label={`Choose ${preset.name}`}
+                                        aria-pressed={isSelected}
+                                        title={preset.name}
+                                        className={`flex items-center gap-1.5 rounded-full border px-2 py-1 text-[9px] font-semibold transition-colors ${
+                                          isSelected
+                                            ? 'border-amber-500 bg-amber-50 text-slate-900 dark:bg-amber-950/30 dark:text-white'
+                                            : 'border-slate-200 text-slate-600 hover:border-slate-400 dark:border-slate-700 dark:text-slate-300'
+                                        }`}
+                                      >
+                                        <span
+                                          className="h-3.5 w-3.5 rounded-full border border-slate-300"
+                                          style={{ backgroundColor: preset.hex }}
+                                        />
+                                        {preset.name}
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                              <div className="flex flex-wrap items-end gap-2">
+                              <div className="min-w-[140px] flex-1">
+                                <label htmlFor="manual-product-color-name" className="mb-1 block text-[9px] font-semibold text-slate-500">Color name (optional)</label>
+                                <input
+                                  id="manual-product-color-name"
+                                  type="text"
+                                  value={newColorName}
+                                  onChange={(event) => setNewColorName(event.target.value)}
+                                  onKeyDown={(event) => {
+                                    if (event.key === 'Enter') {
+                                      event.preventDefault();
+                                      addFormColor();
+                                    }
+                                  }}
+                                  placeholder="e.g. Black (optional)"
+                                  autoFocus
+                                  className="w-full rounded-lg border border-slate-300 bg-slate-50 p-2 text-xs focus:outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-950 dark:text-white"
+                                />
+                              </div>
+                              <div>
+                                <label htmlFor="manual-product-color-hex" className="mb-1 block text-[9px] font-semibold text-slate-500">Choose or enter color</label>
+                                <div className="flex h-[34px] items-center gap-2 rounded-lg border border-slate-300 bg-slate-50 px-2 dark:border-slate-700 dark:bg-slate-950">
+                                  <input
+                                    type="color"
+                                    value={/^#[\da-f]{6}$/i.test(newColorHex) ? newColorHex : '#000000'}
+                                    onChange={(event) => setNewColorHex(event.target.value.toUpperCase())}
+                                    aria-label="Choose product color"
+                                    className="h-6 w-7 cursor-pointer border-0 bg-transparent p-0"
+                                  />
+                                  <input
+                                    id="manual-product-color-hex"
+                                    type="text"
+                                    value={newColorHex}
+                                    onChange={(event) => setNewColorHex(event.target.value.toUpperCase())}
+                                    aria-label="Product color HEX value"
+                                    placeholder="#000000"
+                                    maxLength={7}
+                                    className="w-20 bg-transparent font-mono text-[10px] font-bold text-slate-700 outline-none dark:text-slate-200"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={addFormColor}
+                                className="h-[34px] rounded-lg bg-emerald-600 px-4 text-[11px] font-bold text-white transition-all hover:bg-emerald-700"
+                              >
+                                Add Color
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setIsManualColorFormOpen(false);
+                                  setNewColorName('');
+                                }}
+                                className="h-[34px] rounded-lg border border-slate-300 px-3 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                              >
+                                Cancel
+                              </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => setIsManualColorFormOpen(true)}
+                            className="flex flex-col items-center justify-center gap-1 p-2.5 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 hover:border-amber-500 hover:bg-amber-50 dark:hover:bg-amber-950/20 transition-all text-slate-400 hover:text-amber-600"
+                            title="Add new color"
+                          >
+                            <span className="text-lg font-bold">+</span>
+                            <span className="text-[7px] font-bold uppercase tracking-wider">New</span>
+                          </button>
+                        )
                       )}
                     </div>
                   </div>
@@ -1744,7 +1971,13 @@ export const ProductsView = ({
                     <div className="grid grid-cols-4 sm:grid-cols-5 gap-2">
                       {activeColorImages.map((img, index) => (
                         <div key={`${activeColorIndex}-${img}-${index}`} className="relative group rounded-lg border-2 border-amber-300 dark:border-amber-700 overflow-hidden aspect-[4/5] bg-slate-200 dark:bg-slate-800 shadow-md">
-                          <img src={img} className="w-full h-full object-cover" alt={formColors[activeColorIndex]?.name} />
+                          <img
+                            src={img}
+                            className="w-full h-full cursor-crosshair object-cover"
+                            alt={formColors[activeColorIndex]?.name}
+                            title="Click a product area to sample its exact image color"
+                            onClick={(event) => sampleExactColorFromImage(img, event)}
+                          />
                           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all" />
                           <button
                             type="button"
@@ -1796,48 +2029,18 @@ export const ProductsView = ({
                         <button
                           type="button"
                           onClick={extractColorsFromImages}
-                          className="flex-1 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2"
-                          title="Analyze all images and auto-assign colors"
+                          disabled={isExtractingColors}
+                          className="flex-1 px-3 py-2 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 disabled:cursor-wait disabled:opacity-60 text-white rounded-lg font-bold text-xs transition-all shadow-sm flex items-center justify-center gap-2"
+                          title="Analyze the central product area in each image"
                         >
-                          <span> Extract & Organize by Color</span>
+                          <span>{isExtractingColors ? 'Analyzing Images...' : 'Extract & Organize by Color'}</span>
                         </button>
                       )}
                     </div>
+                    <p className="text-[9px] text-slate-500 dark:text-slate-400">
+                      For an exact color, click the product area in its image preview.
+                    </p>
                   </div>
-
-                  {/* ADD NEW COLOR SECTION
-                  {formColors.length < 12 && (
-                    <div className="border-t border-slate-300 dark:border-slate-700 pt-3 space-y-2">
-                      <div className="text-[9px] font-black uppercase text-slate-500">Add New Color</div>
-                      <div className="flex gap-2 items-end">
-                        <div className="flex-grow">
-                          <input
-                            type="text"
-                            value={newColorName}
-                            onChange={(e) => setNewColorName(e.target.value)}
-                            placeholder="Color name..."
-                            className="w-full border border-slate-300 dark:border-slate-700 p-1.5 bg-white dark:bg-slate-900 dark:text-white rounded text-xs focus:outline-none"
-                          />
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <input
-                            type="color"
-                            value={newColorHex}
-                            onChange={(e) => setNewColorHex(e.target.value)}
-                            className="w-8 h-8 rounded cursor-pointer"
-                          />
-                          <span className="font-mono text-[9px] font-bold text-slate-600 dark:text-slate-400">{newColorHex}</span>
-                        </div>
-                        <button
-                          type="button"
-                          onClick={addFormColor}
-                          className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-bold rounded transition-all"
-                        >
-                          Add
-                        </button>
-                      </div>
-                    </div>
-                  )} */}
 
                   ALL IMAGES OVERVIEW
                   {formImages.length > 0 && (

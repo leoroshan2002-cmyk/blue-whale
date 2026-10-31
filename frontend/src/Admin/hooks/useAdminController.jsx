@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { apiClient, invalidateCategoryCache, invalidateProductCache } from '../../services/api';
+import { apiClient, invalidateCategoryCache, invalidateProductCache, resolveBackendImageUrl } from '../../services/api';
 import { loadInitialState, saveState } from '../utils/store.js';
 import { notifyCatalogChanged } from '../../utils/catalogSync.js';
 import { normalizeImageList } from '../../utils/productImages.js';
@@ -19,6 +19,12 @@ import {
   AnalyticsView,
   SettingsView
 } from '../components/OtherViews.jsx';
+
+const normalizeAdminProduct = (product) => ({
+  ...product,
+  images: Array.isArray(product.images) ? product.images.map(resolveBackendImageUrl) : [],
+  image: resolveBackendImageUrl(product.image),
+});
 
 export function useAdminController() {
   const { user, isAuthReady, logout } = useAuth();
@@ -50,7 +56,7 @@ export function useAdminController() {
     const fetchAdminData = async () => {
       try {
         const results = await Promise.allSettled([
-          apiClient.get('/api/admin/products'),
+          apiClient.get('/api/products'),
           apiClient.get('/api/admin/categories'),
           apiClient.get('/api/admin/customers'),
           apiClient.get('/api/admin/coupons')
@@ -77,7 +83,9 @@ export function useAdminController() {
         const categoriesResponse = categoriesResult.status === 'fulfilled' ? categoriesResult.value : null;
         const customersResponse = customersResult.status === 'fulfilled' ? customersResult.value : null;
         const couponsResponse = couponsResult.status === 'fulfilled' ? couponsResult.value : null;
-        const serverProducts = Array.isArray(productsResponse?.data?.products) ? productsResponse.data.products : [];
+        const serverProducts = Array.isArray(productsResponse?.data?.products)
+          ? productsResponse.data.products.map(normalizeAdminProduct)
+          : [];
         const serverCategories = Array.isArray(categoriesResponse?.data?.categories) ? categoriesResponse.data.categories : [];
         const serverOrders = Array.isArray(ordersResponse?.data?.orders) ? ordersResponse.data.orders : [];
         const serverCustomers = Array.isArray(customersResponse?.data?.customers) ? customersResponse.data.customers : [];
@@ -274,7 +282,7 @@ export function useAdminController() {
     try {
       const formData = buildProductFormData(prod);
       const { data } = await apiClient.post('/api/admin/products', formData);
-      const savedProduct = data?.product;
+      const savedProduct = data?.product ? normalizeAdminProduct(data.product) : null;
       if (!savedProduct) {
         throw new Error('The backend returned an invalid product response.');
       }
@@ -300,7 +308,7 @@ export function useAdminController() {
     try {
       const formData = buildProductFormData(prod);
       const { data } = await apiClient.put(`/api/admin/products/${prod.id}`, formData);
-      const updatedProduct = data?.product;
+      const updatedProduct = data?.product ? normalizeAdminProduct(data.product) : null;
       if (!updatedProduct) {
         throw new Error('The backend returned an invalid product response.');
       }
@@ -492,7 +500,8 @@ export function useAdminController() {
       const { data } = await apiClient.put(`/api/admin/orders/${orderId}`, payload);
       const updatedOrder = data.order;
 
-      const refreshedProducts = await apiClient.get('/api/admin/products').then((response) => response?.data?.products || []);
+      const refreshedProducts = await apiClient.get('/api/products')
+        .then((response) => (Array.isArray(response?.data?.products) ? response.data.products.map(normalizeAdminProduct) : []));
 
       setState((prev) => ({
         ...prev,
@@ -687,7 +696,8 @@ export function useAdminController() {
       const { data } = await apiClient.post('/api/admin/orders', orderPayload);
       const savedOrder = data.order;
 
-      const refreshedProducts = await apiClient.get('/api/admin/products').then((response) => response?.data?.products || []);
+      const refreshedProducts = await apiClient.get('/api/products')
+        .then((response) => (Array.isArray(response?.data?.products) ? response.data.products.map(normalizeAdminProduct) : []));
 
       setState((prev) => ({
         ...prev,

@@ -4,6 +4,7 @@ import {
   createProduct,
   deleteProduct,
   getProductById,
+  getProductImage,
   listProducts,
   updateProduct,
 } from '../controllers/productController.js';
@@ -11,6 +12,8 @@ import {
 const router = express.Router();
 
 router.get('/', listProducts);
+router.get('/:id/image', getProductImage);
+router.get('/:id/image/:index', getProductImage);
 router.get('/:id', getProductById);
 router.post('/', upload.array('productImage', 8), createProduct);
 router.put('/:id', upload.array('productImage', 8), updateProduct);

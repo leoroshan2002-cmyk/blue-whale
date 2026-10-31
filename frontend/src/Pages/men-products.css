@@ -284,6 +284,7 @@
 
 .mp-card__img {
     position: relative;
+    width: 100%;
     aspect-ratio: 1 / 1.03;
     background: #e8dcc8 center / cover no-repeat;
     border-radius: 3px;

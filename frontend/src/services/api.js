@@ -33,6 +33,20 @@ export const apiClient = axios.create({
   withCredentials: true,
   timeout: 20_000,
 });
+
+const getWithRetry = async (path) => {
+  try {
+    return await apiClient.get(path);
+  } catch (error) {
+    if (!['ECONNABORTED', 'ETIMEDOUT'].includes(error?.code)) {
+      throw error;
+    }
+
+    await new Promise((resolve) => setTimeout(resolve, 750));
+    return apiClient.get(path);
+  }
+};
+
 export const resolveBackendImageUrl = (image) => {
   if (!image || typeof image !== 'string') return '';
 
@@ -94,7 +108,7 @@ const productsCache = createCache(30_000);
 
 export const fetchCategories = async () => {
   return categoriesCache.fetch(async () => {
-    const { data } = await apiClient.get('/api/categories');
+    const { data } = await getWithRetry('/api/categories');
     if (!Array.isArray(data?.categories)) {
       throw new Error(data?.message || 'The categories API returned an invalid response.');
     }
@@ -104,7 +118,7 @@ export const fetchCategories = async () => {
 
 export const fetchProducts = async () => {
   return productsCache.fetch(async () => {
-    const { data } = await apiClient.get('/api/products');
+    const { data } = await getWithRetry('/api/products');
     if (!Array.isArray(data?.products)) {
       throw new Error(data?.message || 'The products API returned an invalid response.');
     }
@@ -116,7 +130,7 @@ export const invalidateProductCache = () => productsCache.invalidate();
 export const invalidateCategoryCache = () => categoriesCache.invalidate();
 
 export const fetchProductById = async (id) => {
-  const { data } = await apiClient.get(`/api/products/${encodeURIComponent(id)}`);
+  const { data } = await getWithRetry(`/api/products/${encodeURIComponent(id)}`);
   if (!data?.product) {
     throw new Error(data?.message || 'The product API returned an invalid response.');
   }

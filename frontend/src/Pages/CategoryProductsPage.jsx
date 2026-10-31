@@ -266,7 +266,7 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
                   <article key={id} className="mp-card">
                     <div className="mp-card__img">
                       <Link to={`/product/${id}`} className="mp-product-image-link" aria-label={`View ${p.name}`}>
-                        <img src={image} alt={p.name} loading="lazy" onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }} />
+                        <img src={image} alt={p.name} loading="lazy"style={{width: "100%",height: "100%",objectFit: "contain",objectPosition: "center top",display: "block" }} onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }} />
                       </Link>
                       {!p.badge && off > 0 && <span className="mp-badge off">{off}% OFF</span>}
                       <button

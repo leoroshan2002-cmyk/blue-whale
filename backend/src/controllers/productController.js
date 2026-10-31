@@ -1,5 +1,31 @@
+import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
+
+const publicProductImagesStage = {
+  $set: {
+    images: {
+      $map: {
+        input: { $ifNull: ['$images', []] },
+        as: 'image',
+        in: {
+          $cond: [
+            {
+              $or: [
+                { $regexMatch: { input: '$$image', regex: /^data:/i } },
+                { $regexMatch: { input: '$$image', regex: /^blob:/i } },
+              ],
+            },
+            '__PUBLIC_PRODUCT_IMAGE__',
+            '$$image',
+          ],
+        },
+      },
+    },
+  },
+};
+
+const isPublicProductRoute = (req) => req.baseUrl === '/api/products';
 
 const categorySubcategories = {
   Men: ['T-Shirts', 'Shirts', 'Jackets', 'Hoodies', 'Jeans', 'Footwear'],
@@ -24,30 +50,24 @@ const isSubcategoryValid = async (category, subCategory) => {
   return !validList || validList.length === 0 || validList.includes(subCategory);
 };
 
-const toProductResponse = (product) => {
+const toProductResponse = (product, { useImageEndpoint = false } = {}) => {
   if (!product) return null;
 
-  if (product.toObject) {
-    const doc = product.toObject();
-    doc.id = doc._id.toString();
-    delete doc._id;
-
-    doc.images = (doc.images || []).filter((img) => typeof img === 'string' && !img.startsWith('blob:'));
-    doc.image = doc.images[0] || '';
-    doc.colors = doc.variants?.colors || [];
-    doc.sizes = doc.variants?.sizes || [];
-    doc.subCategory = doc.subCategory || '';
-    return doc;
-  }
-
+  const doc = product.toObject ? product.toObject() : { ...product };
+  doc.id = String(doc.id || doc._id);
+  delete doc._id;
+  doc.images = (doc.images || [])
+    .map((img, index) => img === '__PUBLIC_PRODUCT_IMAGE__' && useImageEndpoint
+      ? `/api/products/${doc.id}/image/${index}`
+      : img)
+    .filter((img) => typeof img === 'string' && img);
+  doc.image = doc.images[0] || (useImageEndpoint ? `/api/products/${doc.id}/image` : '');
+  doc.colors = doc.variants?.colors || [];
+  doc.sizes = doc.variants?.sizes || [];
+  doc.subCategory = doc.subCategory || '';
   return {
-    ...product,
-    images: (product.images || []).filter((img) => typeof img === 'string' && !img.startsWith('blob:')),
-    image: (Array.isArray(product.images) ? product.images[0] : '') || '',
-    colors: product.variants?.colors || [],
-    sizes: product.variants?.sizes || [],
-    subCategory: product.subCategory || '',
-    variants: product.variants || { sizes: [], colors: [] },
+    ...doc,
+    variants: doc.variants || { sizes: [], colors: [] },
   };
 };
 
@@ -218,9 +238,15 @@ export const buildProductUpdatePayload = (existingProduct, body, files = []) => 
   return updatePayload;
 };
 
-export const listProducts = async (_req, res) => {
+export const listProducts = async (req, res) => {
   try {
-    const products = (await Product.find().sort({ createdAt: -1 })).map(toProductResponse);
+    const rawProducts = isPublicProductRoute(req)
+      ? await Product.aggregate([
+          { $sort: { createdAt: -1 } },
+          publicProductImagesStage,
+        ])
+      : await Product.find().sort({ createdAt: -1 });
+    const products = rawProducts.map((product) => toProductResponse(product, { useImageEndpoint: isPublicProductRoute(req) }));
     res.status(200).json({ success: true, products });
   } catch (error) {
     console.error('Failed to load products:', error);
@@ -231,10 +257,20 @@ export const listProducts = async (_req, res) => {
 export const getProductById = async (req, res) => {
   try {
     const { id } = req.params;
-    const product = await Product.findById(id);
+    const product = isPublicProductRoute(req)
+      ? (mongoose.isValidObjectId(id)
+          ? (await Product.aggregate([
+              { $match: { _id: new mongoose.Types.ObjectId(id) } },
+              publicProductImagesStage,
+            ]))[0]
+          : null)
+      : await Product.findById(id);
 
     if (product) {
-      return res.status(200).json({ success: true, product: toProductResponse(product) });
+      return res.status(200).json({
+        success: true,
+        product: toProductResponse(product, { useImageEndpoint: isPublicProductRoute(req) }),
+      });
     }
 
     return res.status(404).json({ message: 'Product not found' });
@@ -244,6 +280,40 @@ export const getProductById = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
     return res.status(500).json({ message: 'Unable to load product.' });
+  }
+};
+
+export const getProductImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const imageIndex = req.params.index === undefined ? 0 : Number(req.params.index);
+    if (!mongoose.isValidObjectId(id)) {
+      return res.status(404).json({ message: 'Product image not found' });
+    }
+    if (!Number.isInteger(imageIndex) || imageIndex < 0) {
+      return res.status(404).json({ message: 'Product image not found' });
+    }
+
+    const product = await Product.findById(id)
+      .select({ images: { $slice: [imageIndex, 1] } })
+      .lean();
+    const image = product?.images?.[0];
+    const match = typeof image === 'string'
+      ? image.match(/^data:(image\/[a-z0-9.+-]+);base64,([a-z0-9+/=\r\n]+)$/i)
+      : null;
+
+    if (!match) {
+      return res.status(404).json({ message: 'Product image not found' });
+    }
+
+    res
+      .status(200)
+      .set('Content-Type', match[1])
+      .set('Cache-Control', 'public, max-age=3600')
+      .send(Buffer.from(match[2], 'base64'));
+  } catch (error) {
+    console.error('Failed to load product image:', error);
+    return res.status(500).json({ message: 'Unable to load product image.' });
   }
 };
 

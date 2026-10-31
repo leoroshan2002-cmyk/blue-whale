@@ -8,6 +8,7 @@ import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
 import { fetchProductById, fetchProducts } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
 import { DEFAULT_IMAGE_FALLBACK, getSafeImageUrl, normalizeImageList } from "../utils/productImages";
+import { normalizeAdditionalDetails } from "../utils/productAttributes";
 import ProductCard from "../Components/ProductCard";
 import "./saree-shop.css";
 
@@ -37,7 +38,23 @@ export default function ProductPage() {
     const load = async () => {
       setIsLoading(true);
       try {
-        const [detail, all] = await Promise.all([fetchProductById(id), fetchProducts()]);
+        const [detailResult, catalogResult] = await Promise.allSettled([
+          fetchProductById(id),
+          fetchProducts()
+        ]);
+        const all = catalogResult.status === "fulfilled" ? catalogResult.value : [];
+        if (catalogResult.status === "rejected") {
+          console.error("Failed to load related products:", catalogResult.reason);
+        }
+
+        const catalogProduct = all.find((item) => String(item.id || item._id) === String(id));
+        const detail = detailResult.status === "fulfilled" ? detailResult.value : catalogProduct;
+        if (!detail) {
+          throw detailResult.status === "rejected"
+            ? detailResult.reason
+            : new Error("Product not found");
+        }
+
         if (!cancelled) {
           setProduct(detail);
           setCatalog(all);
@@ -64,11 +81,10 @@ export default function ProductPage() {
   const colors = Array.isArray(product?.colors) ? product.colors : (product?.variants?.colors || []);
   const sizes = Array.isArray(product?.sizes) ? product.sizes : (product?.variants?.sizes || []);
   const highlights = Array.isArray(product?.highlights)
-    ? product.highlights.filter((attribute) => attribute?.label && attribute?.value)
+    ? product.highlights.filter((attribute) => attribute?.label && String(attribute.value || '').trim())
     : [];
-  const additionalDetails = Array.isArray(product?.additionalDetails)
-    ? product.additionalDetails.filter((attribute) => attribute?.label && attribute?.value)
-    : [];
+  const additionalDetails = normalizeAdditionalDetails(product?.additionalDetails)
+    .filter((attribute) => attribute.value.trim());
   const price = Number(product?.discountPrice ?? product?.salePrice ?? product?.price ?? 0);
   const originalPrice = Number(product?.originalPrice ?? product?.compareAtPrice ?? product?.price ?? 0);
   const discount = originalPrice > price && originalPrice > 0 ? Math.round((1 - price / originalPrice) * 100) : 0;
@@ -80,6 +96,22 @@ export default function ProductPage() {
   if (!product) return <main className="bw-product-loading"><div className="bw-empty"><p className="bw-eyebrow bw-eyebrow-dark">BLUE WHALE COLLECTION</p><h2>{isLoading ? "Finding your piece…" : productError ? "Product could not be loaded" : "Product not found"}</h2><p>{productError || "This product may no longer be available."}</p><Link to="/shop?category=women">Back to collection</Link></div></main>;
 
   const selectedColorValue = colors[selectedColor];
+  const handleColorSelect = (colorIndex) => {
+    setSelectedColor(colorIndex);
+    const colorImageIndexes = colors[colorIndex]?.imageIndexes;
+    const mappedImageIndex = Array.isArray(colorImageIndexes)
+      ? colorImageIndexes.find((imageIndex) => Number.isInteger(imageIndex) && images[imageIndex])
+      : undefined;
+    const imageIndex = mappedImageIndex ?? colorIndex;
+    if (images[imageIndex]) setSelectedImage(imageIndex);
+  };
+  const handleImageSelect = (imageIndex) => {
+    setSelectedImage(imageIndex);
+    const colorIndex = colors.findIndex((color) =>
+      Array.isArray(color?.imageIndexes) && color.imageIndexes.includes(imageIndex)
+    );
+    if (colorIndex >= 0) setSelectedColor(colorIndex);
+  };
   const stock = Number(product.stock ?? 0);
   const handleAdd = () => {
     if (stock <= 0) return;
@@ -95,7 +127,7 @@ export default function ProductPage() {
     <section className="bw-product-detail">
       <motion.div className="bw-product-gallery" initial={{opacity:0,x:-28}} animate={{opacity:1,x:0}} transition={{duration:.8,ease:[.22,1,.36,1]}}>
         <div className="bw-product-main-image"><img key={images[selectedImage] || product.image} src={getSafeImageUrl(images[selectedImage] || product.image, DEFAULT_IMAGE_FALLBACK)} alt={product.name} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/><span className="bw-image-caption">CRAFTED WITH CARE · BLUE WHALE</span>{discount > 0 && <span className="bw-discount-tag">-{discount}%</span>}</div>
-        <div className="bw-product-thumbs">{(images.length ? images : [product.image]).filter(Boolean).map((image,index)=><button type="button" key={`${image}-${index}`} onClick={()=>setSelectedImage(index)} className={selectedImage===index?"active":""} aria-label={`View product image ${index+1}`}><img src={getSafeImageUrl(image,DEFAULT_IMAGE_FALLBACK)} alt={`${product.name} view ${index+1}`} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/></button>)}</div>
+        <div className="bw-product-thumbs">{(images.length ? images : [product.image]).filter(Boolean).map((image,index)=><button type="button" key={`${image}-${index}`} onClick={()=>handleImageSelect(index)} className={selectedImage===index?"active":""} aria-label={`View product image ${index+1}`}><img src={getSafeImageUrl(image,DEFAULT_IMAGE_FALLBACK)} alt={`${product.name} view ${index+1}`} onError={(e)=>{e.currentTarget.src=DEFAULT_IMAGE_FALLBACK;}}/></button>)}</div>
         <div className="bw-image-note"><span>✳</span><p>Every weave holds a story. Make this one yours.</p></div>
       </motion.div>
       <motion.div className="bw-product-info" initial={{opacity:0,y:24}} animate={{opacity:1,y:0}} transition={{duration:.8,delay:.12,ease:[.22,1,.36,1]}}>
@@ -112,12 +144,12 @@ export default function ProductPage() {
             <h2>Product highlights</h2>
             <dl>{highlights.map((attribute, index) => <div key={`${attribute.label}-${index}`}><dt>{attribute.label}</dt><dd>{attribute.value}</dd></div>)}</dl>
           </div>}
-          {additionalDetails.length > 0 && <details className="bw-detail-accordion bw-additional-details">
-            <summary>Additional details <span>+</span></summary>
+          {additionalDetails.length > 0 && <div className="bw-additional-details">
+            <h2>Additional Details</h2>
             <dl>{additionalDetails.map((attribute, index) => <div key={`${attribute.label}-${index}`}><dt>{attribute.label}</dt><dd>{attribute.value}</dd></div>)}</dl>
-          </details>}
+          </div>}
         </section>}
-        {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} aria-pressed={selectedColor===index} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>{setSelectedColor(index);if(images[index])setSelectedImage(index);}}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
+        {colors.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>COLOUR</span><strong>{colorName(selectedColorValue)}</strong></div><div className="bw-color-options">{colors.map((color,index)=><button key={`${colorName(color)}-${index}`} type="button" title={colorName(color)} aria-label={colorName(color)} aria-pressed={selectedColor===index} className={selectedColor===index?"active":""} style={{backgroundColor:colorHex(color)}} onClick={()=>handleColorSelect(index)}>{selectedColor===index&&<Check size={15}/>}</button>)}</div></div>}
         {sizes.length>0&&<div className="bw-option-block"><div className="bw-option-heading"><span>SIZE</span><span className="bw-selected-size">{selectedSize ? `Selected: ${selectedSize}` : "Choose a size"}</span></div><div className="bw-size-options" role="group" aria-label="Choose a size">{sizes.map((size)=><button key={size} type="button" className={selectedSize===size?"active":""} aria-pressed={selectedSize===size} onClick={()=>setSelectedSize(size)}>{size}</button>)}</div></div>}
         <div className="bw-buy-row"><div className="bw-quantity"><button type="button" onClick={()=>setQuantity((q)=>Math.max(1,q-1))} aria-label="Decrease quantity"><Minus size={14}/></button><span>{quantity}</span><button type="button" onClick={()=>setQuantity((q)=>Math.min(Math.max(stock,1),q+1))} aria-label="Increase quantity"><Plus size={14}/></button></div><button type="button" className="bw-add-cart" disabled={stock<=0 || (sizes.length>0 && !selectedSize)} onClick={handleAdd}><ShoppingBag size={17}/>{stock<=0?"Currently unavailable":sizes.length>0 && !selectedSize?"Select a size":"Add to bag"}</button><button type="button" className={`bw-wishlist ${isWishlisted(product.id || product._id)?"saved":""}`} onClick={handleWishlist} aria-label="Add to wishlist"><Heart size={19} fill={isWishlisted(product.id || product._id)?"currentColor":"none"}/></button></div>
         <p className={`bw-stock ${stock>0?"in-stock":"out-stock"}`}><span/> {stock>0?"Ready to ship · In stock":"Currently out of stock"}</p>

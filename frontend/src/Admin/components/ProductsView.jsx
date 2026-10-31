@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Search, Plus, Trash2, Edit, UploadCloud, X, RefreshCw, FileSpreadsheet, Check, Eye } from 'lucide-react';
 import { normalizeImageList } from '../../utils/productImages';
+import { DEFAULT_ADDITIONAL_DETAILS, normalizeAdditionalDetails } from '../../utils/productAttributes';
 
 const normalizeProductAttributes = (attributes = []) => (
   Array.isArray(attributes)
@@ -12,25 +13,6 @@ const normalizeProductAttributes = (attributes = []) => (
       }))
     : []
 );
-
-const DEFAULT_ADDITIONAL_DETAILS = [
-  'Color',
-  'Occasion',
-  'Type',
-  'Blouse Fabric',
-  'Border',
-  'Ornamentation',
-  'Pattern',
-  'Print or Pattern Type',
-  'Blouse Pattern',
-  'Pallu Details',
-  'Blouse Color',
-  'Loom Type',
-  'Border Width',
-  'Brand',
-  'Generic Name',
-  'Country of Origin'
-];
 
 const createDefaultAdditionalDetails = () => (
   DEFAULT_ADDITIONAL_DETAILS.map((label) => ({ label, value: '' }))
@@ -585,13 +567,25 @@ export const ProductsView = ({
     setFormStock(p.stock.toString());
     setFormDescription(p.description);
     setFormHighlights(normalizeProductAttributes(p.highlights));
-    setFormAdditionalDetails(normalizeProductAttributes(p.additionalDetails));
+    setFormAdditionalDetails(normalizeAdditionalDetails(p.additionalDetails));
     setFormImages(Array.isArray(p.images) ? p.images : []);
     setFormImageFiles([]);
     setFormSizes(p.variants?.sizes || []);
     setFormColors(p.variants?.colors || []);
     setActiveColorIndex(0);
-    setImageColorMap({});
+    const savedImageColorMap = Object.fromEntries(
+      (p.variants?.colors || []).flatMap((color, colorIndex) =>
+        (Array.isArray(color?.imageIndexes) ? color.imageIndexes : [])
+          .filter((imageIndex) => Number.isInteger(imageIndex) && p.images?.[imageIndex])
+          .map((imageIndex) => [p.images[imageIndex], colorIndex])
+      )
+    );
+    const legacyImageColorMap = Object.fromEntries(
+      (p.images || [])
+        .slice(0, (p.variants?.colors || []).length)
+        .map((image, colorIndex) => [image, colorIndex])
+    );
+    setImageColorMap({ ...legacyImageColorMap, ...savedImageColorMap });
     setIsEditorOpen(true);
   };
 
@@ -608,7 +602,32 @@ export const ProductsView = ({
     const stockNum = parseInt(formStock, 10);
     const normalizedImages = normalizeImageList(formImages);
     const normalizedSizes = Array.isArray(formSizes) ? formSizes.filter(Boolean) : [];
-    const normalizedColors = Array.isArray(formColors) ? formColors.filter((color) => color && (color.name || color.hex)) : [];
+    const imageIndexesByColor = formColors.map(() => []);
+    const fileImageIndexes = new Map();
+    let uploadedFileIndex = 0;
+    formImages.forEach((image) => {
+      if (image.startsWith('blob:')) {
+        fileImageIndexes.set(image, normalizedImages.length + uploadedFileIndex);
+        uploadedFileIndex += 1;
+      }
+    });
+    formImages.forEach((image) => {
+      const colorIndex = imageColorMap[image];
+      if (!Number.isInteger(colorIndex) || !imageIndexesByColor[colorIndex]) return;
+      const savedImageIndex = image.startsWith('blob:')
+        ? fileImageIndexes.get(image)
+        : normalizedImages.indexOf(image);
+      if (Number.isInteger(savedImageIndex) && savedImageIndex >= 0) {
+        imageIndexesByColor[colorIndex].push(savedImageIndex);
+      }
+    });
+    const normalizedColors = Array.isArray(formColors)
+      ? formColors
+        .map((color, index) => color && (color.name || color.hex)
+          ? { ...color, imageIndexes: imageIndexesByColor[index] }
+          : null)
+        .filter(Boolean)
+      : [];
 
     const productPayload = {
       id: editingProduct ? editingProduct.id : `prod-${Date.now()}`,

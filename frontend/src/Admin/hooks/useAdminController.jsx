@@ -297,10 +297,12 @@ export function useAdminController() {
       }
       addNotification(`New product added: ${savedProduct.name}`);
       triggerToast(`Listing introduced: ${savedProduct.name}`);
+      return true;
     } catch (error) {
       console.error('Failed to save product:', error);
       triggerToast('Unable to save product to the backend.');
       alert(error?.response?.data?.message || error.message || 'Unable to save product to the backend.');
+      return false;
     }
   };
 
@@ -322,10 +324,12 @@ export function useAdminController() {
         notifyCatalogChanged('product-updated');
       }
       addNotification(`Product updated: ${updatedProduct.name || prod.name}`);
+      return true;
     } catch (error) {
       console.error('Failed to update product:', error);
       triggerToast('Unable to update product in the backend.');
       alert(error?.response?.data?.message || error.message || 'Unable to update product in the backend.');
+      return false;
     }
   };
 

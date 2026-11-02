@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 import Product from '../models/Product.js';
 import Category from '../models/Category.js';
+import { uploadToCloudinary } from '../middleware/cloudinaryStorage.js';
 
 const publicProductImagesStage = {
   $set: {
@@ -73,12 +74,12 @@ const getUploadedFileUrl = (file) => {
     return file.path || file.secure_url || file.url || file.location;
   }
 
-  if (file.buffer && file.mimetype) {
-    return `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
-  }
-
   return '';
 };
+
+const uploadProductImages = async (files = []) => Promise.all(
+  files.map((file) => uploadToCloudinary(file, 'products'))
+);
 
 const parseProductAttributes = (attributes, fieldName) => {
   let parsedAttributes = attributes;
@@ -247,8 +248,8 @@ export const listProducts = async (req, res) => {
   try {
     const rawProducts = isPublicProductRoute(req)
       ? await Product.aggregate([
-          { $sort: { createdAt: -1 } },
           publicProductImagesStage,
+          { $sort: { createdAt: -1 } },
         ])
       : await Product.find().sort({ createdAt: -1 });
     const products = rawProducts.map((product) => toProductResponse(product, { useImageEndpoint: true }));
@@ -345,7 +346,7 @@ const sendProductError = (res, error) => {
 
 export const createProduct = async (req, res) => {
   try {
-    const payload = parseProductPayload(req.body, req.files);
+    const payload = parseProductPayload(req.body);
     if (!payload.sku) {
       payload.sku = `ZR-${Date.now()}`;
     }
@@ -356,6 +357,12 @@ export const createProduct = async (req, res) => {
         message: `Invalid subcategory "${payload.subCategory}" for category "${payload.category}".`
       });
     }
+
+    const uploadedImages = await uploadProductImages(req.files);
+    payload.images = [...new Set([
+      ...payload.images,
+      ...uploadedImages.map(getUploadedFileUrl).filter(Boolean),
+    ])];
 
     const product = await Product.create(payload);
     res.status(201).json({ success: true, product: toProductResponse(product, { useImageEndpoint: true }) });
@@ -373,7 +380,8 @@ export const updateProduct = async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    const payload = buildProductUpdatePayload(existingProduct, req.body, req.files);
+    const uploadedImages = await uploadProductImages(req.files);
+    const payload = buildProductUpdatePayload(existingProduct, req.body, uploadedImages);
     const category = payload.category || existingProduct.category;
     const subCategory = payload.subCategory || existingProduct.subCategory || '';
 

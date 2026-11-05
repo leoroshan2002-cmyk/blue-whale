@@ -108,8 +108,9 @@ const App = () => {
               <Route path="/sustainability" element={<Sustainability />} />
               <Route path="/press" element={<Press />} />
               <Route path="/store-locator" element={<StoreLocator />} />
-              <Route path="/products" element={<ComboCollectionPage />} />
+              <Route path="/products" element={<Navigate to="/category/combo" replace />} />
               <Route path="/shop" element={<ProductsPage />} />
+              <Route path="/category/combo" element={<ComboCollectionPage />} />
               <Route path="/category/women" element={<WomenCollectionPage />} />
               <Route path="/category/women/all" element={<CategoryProductsPage key="women" categoryName="women" />} />
               <Route path="/category/men" element={<MenCollectionPage />} />

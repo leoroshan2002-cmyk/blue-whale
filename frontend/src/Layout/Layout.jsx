@@ -7,7 +7,7 @@ export default function Layout() {
   const isHomePage = ["/", "/home"].includes(location.pathname);
   const isWomenPage = location.pathname === "/category/women";
   const isMenPage = location.pathname === "/category/men";
-  const isComboPage = location.pathname === "/products";
+  const isComboPage = location.pathname === "/category/combo";
   const isCategoryProductsPage = ["/category/men/all", "/category/women/all"].includes(location.pathname);
   const isAccountPage = location.pathname === "/account";
 

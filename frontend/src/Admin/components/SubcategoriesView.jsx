@@ -99,7 +99,7 @@ function SubcategoryCardEditor({ card, index, onChange, onRemove, isWide = false
 
 export default function SubcategoriesView({ categories, onUpdateCategory }) {
   const managedCategories = useMemo(
-    () => categories.filter((category) => ['men', 'women'].includes(category.name?.toLowerCase())),
+    () => categories.filter((category) => ['men', 'women', 'combo'].includes(category.name?.toLowerCase())),
     [categories],
   );
   const [selectedCategoryId, setSelectedCategoryId] = useState('');
@@ -178,7 +178,7 @@ export default function SubcategoriesView({ categories, onUpdateCategory }) {
     return (
       <section className="mx-auto max-w-4xl rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900">
         <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Subcategory manager</h1>
-        <p className="mt-3 text-slate-600 dark:text-slate-300">Create the Men and Women categories first. They will appear here when available.</p>
+        <p className="mt-3 text-slate-600 dark:text-slate-300">Create the Men, Women, or Combo categories first. They will appear here when available.</p>
       </section>
     );
   }
@@ -189,7 +189,7 @@ export default function SubcategoriesView({ categories, onUpdateCategory }) {
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-amber-300">Storefront editor</p>
           <h1 className="mt-2 text-2xl font-bold sm:text-3xl">Subcategory cards</h1>
-          <p className="mt-2 max-w-2xl text-sm text-slate-300">Edit the cards customers see in Men and Women collections. Changes appear after saving.</p>
+          <p className="mt-2 max-w-2xl text-sm text-slate-300">Edit the subcategory cards customers see in Men, Women, and Combo collections. Changes appear after saving.</p>
         </div>
         <button
           type="submit"
@@ -230,7 +230,7 @@ export default function SubcategoriesView({ categories, onUpdateCategory }) {
           className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-slate-800 transition hover:border-amber-600 hover:text-amber-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
         >
           <Plus size={17} />
-          Add subcategory
+          {selectedCategory?.name?.toLowerCase() === 'combo' ? 'Add Combo collection' : 'Add subcategory'}
         </button>
       </div>
 

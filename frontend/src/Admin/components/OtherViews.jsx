@@ -110,7 +110,7 @@ export const CategoriesView = ({
     <div className="space-y-6 text-left animate-fade-in" id="categories-panel">
       <div className="flex justify-between items-center py-2">
         <div>
-          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Men &amp; Women Collections</h2>
+          <h2 className="text-xl font-bold text-slate-900 dark:text-white">Store Collections</h2>
           <p className="text-xs text-slate-500 mt-1">Create and update main departments. Edit collection cards in the separate Subcategories screen.</p>
         </div>
         <button

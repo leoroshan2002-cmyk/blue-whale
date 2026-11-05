@@ -25,6 +25,14 @@ const defaultCollections = [
       { name: 'Floral Printed Sarees', subtitle: 'FRESH FLORALS, GRACEFUL DRAPES', image: '/saree-lavendar.png' },
     ],
   },
+  {
+    name: 'Combo',
+    slug: 'combo',
+    description: 'Coordinated traditional styles from Blue Whale.',
+    cards: [
+      { name: 'Combo Sets', subtitle: 'THOUGHTFULLY PAIRED STYLES', image: '/images/men/hero.jpg' },
+    ],
+  },
 ];
 
 const ensureDefaultCategories = async () => {

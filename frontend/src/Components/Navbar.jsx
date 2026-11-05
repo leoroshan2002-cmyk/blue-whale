@@ -18,7 +18,7 @@ export default function Navbar() {
   const isHomePage = ["/", "/home"].includes(location.pathname);
   const isWomenPage = location.pathname === "/category/women";
   const isMenPage = location.pathname === "/category/men";
-  const isComboPage = location.pathname === "/products";
+  const isComboPage = location.pathname === "/category/combo";
   const isCategoryProductsPage = ["/category/men/all", "/category/women/all"].includes(location.pathname);
 
   const [search, setSearch] = useState(false);
@@ -29,11 +29,11 @@ export default function Navbar() {
 
   const navItems = [
     { name: "Home", path: "/", end: true },
-    ...categories.map((category) => ({
+    ...categories.filter((category) => category.slug?.toLowerCase() !== "combo").map((category) => ({
       name: category.name,
       path: `/category/${encodeURIComponent(category.slug)}`,
     })),
-    { name: "Combo", path: "/products" },
+    { name: "Combo", path: "/category/combo" },
   ];
 
   useEffect(() => {

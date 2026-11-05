@@ -1,97 +1,82 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { ArrowRight, Heart, ShoppingBag } from "lucide-react";
 
 import { useCart } from "../Context/CartContext";
 import { useWishlist } from "../Context/WhislistContext";
 import { useRequireAuthAction } from "../hooks/useRequireAuthAction";
-import { fetchProducts } from "../services/api";
+import { fetchCategories, fetchProducts, resolveBackendImageUrl } from "../services/api";
 import { subscribeToCatalogChanges } from "../utils/catalogSync";
+import {
+  DEFAULT_IMAGE_FALLBACK,
+  getSafeImageUrl,
+  normalizeImageList,
+} from "../utils/productImages";
 
-// Women images (same ones the Women page uses)
-import heroImg from "../assets/home/women.jpeg";
-import pinkImg from "../assets/home/pink.jpeg";
-import redImg from "../assets/home/red.jpeg";
-import whiteImg from "../assets/home/white.jpeg";
-import goldImg from "../assets/home/gold.jpeg";
-import darkPinkImg from "../assets/home/dark-pink.jpeg";
+import heroImage from "../assets/home/reference/hero-couple.png";
+import storyImage from "../assets/home/white.jpeg";
+import detailsImage from "../assets/home/pink.jpeg";
+import bannerImage from "../assets/home/dark-pink.jpeg";
 
 import "./combo.css";
 
-/* Men images live in /public/images/men/ (same as the Men page).
-   TEMPORARY: reusing existing photos. Replace with real couple photos later,
-   e.g. /images/combo/hero.jpg, and change the values below. */
-const MEN_STORY = "/images/men/men-tradition.png";
-const MEN_HERO = "/images/men/hero.jpg";
-
-const IMG = {
-  hero: heroImg, // replace with a couple photo: "/images/combo/hero.jpg"
-  story: whiteImg,
-  details: pinkImg,
-  banner: darkPinkImg,
+const normalize = (value) => String(value || "").trim().toLowerCase();
+const resolveCollectionImage = (image, fallback) => {
+  const safeImage = getSafeImageUrl(image, fallback);
+  return safeImage.startsWith("/uploads")
+    ? resolveBackendImageUrl(safeImage)
+    : safeImage;
 };
 
-const LINK_ALL = "/shop?category=unisex";
-
-const COLLECTIONS = [
-  { title: "Wedding Pairs", subtitle: "FOR YOUR SPECIAL DAY", image: redImg },
-  { title: "Festive Pairs", subtitle: "SHINE BRIGHTER TOGETHER", image: goldImg },
-  { title: "Engagement Edit", subtitle: "BEGIN YOUR FOREVER", image: MEN_STORY },
-  { title: "Anniversary Sets", subtitle: "CELEBRATE YOUR STORY", image: pinkImg },
-  { title: "Everyday Pairs", subtitle: "TRADITION MEETS TODAY", image: MEN_HERO },
-];
-
-const DETAIL_IMAGES = [
-  { label: "Matching Zari", image: redImg },
-  { label: "Same Palette", image: MEN_STORY },
-  { label: "Coordinated Borders", image: goldImg },
-];
-
-const FALLBACK_NAMES = ["Ivory Gold Pair", "Royal Maroon Pair", "Blush Rose Pair", "Golden Heritage Pair"];
-const FALLBACK_PRICES = [15999, 18499, 16799, 19299];
-const PRODUCT_VISUALS = [whiteImg, redImg, pinkImg, goldImg];
-
-const delay = (i, step = 0.12) => ({ "--d": `${i * step}s` });
-
-function Arrow() {
-  return <ArrowRight size={15} strokeWidth={1.4} />;
-}
-
-function ComboProductCard({ product, index, onAddToCart, onWishlist, wishlisted }) {
-  const image = PRODUCT_VISUALS[index % PRODUCT_VISUALS.length];
-  const name = product?.name || FALLBACK_NAMES[index];
-  const price = product?.discountPrice || product?.price || FALLBACK_PRICES[index];
-  const id = product?.id || product?._id;
+function ComboProductCard({ product, onAddToCart, onWishlist, wishlisted }) {
+  const id = product.id || product._id;
+  const images = normalizeImageList(product.images?.length ? product.images : product.image);
+  const image = getSafeImageUrl(images[0], DEFAULT_IMAGE_FALLBACK);
+  const price = Number(product.discountPrice ?? product.salePrice ?? product.price ?? 0);
+  const originalPrice = Number(product.price ?? 0);
+  const outOfStock = Number(product.stock) <= 0;
 
   return (
-    <article className="cc-product-card reveal-up" style={delay(index)}>
+    <article className="cc-product-card">
       <div className="cc-product-media">
-        <Link to={id ? `/product/${id}` : LINK_ALL} aria-label={`View ${name}`}>
-          <img src={image} alt={name} loading="lazy" />
+        <Link to={`/product/${id}`} aria-label={`View ${product.name}`}>
+          <img
+            src={image}
+            alt={product.name}
+            loading="lazy"
+            onError={(event) => {
+              event.currentTarget.src = DEFAULT_IMAGE_FALLBACK;
+            }}
+          />
         </Link>
         <button
           type="button"
-          aria-label={`Add ${name} to wishlist`}
           className={`cc-product-heart ${wishlisted ? "is-active" : ""}`}
-          onClick={() => onWishlist?.(product)}
-          disabled={!product}
+          aria-label={wishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+          onClick={() => onWishlist(product)}
         >
-          <Heart size={19} strokeWidth={1.3} />
+          <Heart size={19} strokeWidth={1.4} />
         </button>
+        {outOfStock && <span className="cc-stock-label">Sold out</span>}
       </div>
       <div className="cc-product-info">
-        <div>
-          <Link to={id ? `/product/${id}` : LINK_ALL} className="cc-product-name">{name}</Link>
-          <div className="cc-product-price">₹ {Number(price).toLocaleString("en-IN")}</div>
+        <div className="cc-product-copy">
+          <Link to={`/product/${id}`} className="cc-product-name">{product.name}</Link>
+          <div className="cc-product-price">
+            ₹ {price.toLocaleString("en-IN")}
+            {originalPrice > price && (
+              <span className="cc-original-price">₹ {originalPrice.toLocaleString("en-IN")}</span>
+            )}
+          </div>
         </div>
         <button
           type="button"
           className="cc-product-cart"
-          aria-label={`Add ${name} to cart`}
-          onClick={() => onAddToCart?.(product)}
-          disabled={!product}
+          aria-label={`Add ${product.name} to cart`}
+          disabled={outOfStock}
+          onClick={() => onAddToCart(product)}
         >
-          <ShoppingBag size={18} strokeWidth={1.4} />
+          <ShoppingBag size={18} strokeWidth={1.5} />
         </button>
       </div>
     </article>
@@ -99,47 +84,72 @@ function ComboProductCard({ product, index, onAddToCart, onWishlist, wishlisted 
 }
 
 export default function ComboCollectionPage() {
+  const location = useLocation();
+  const selectedSubcategory = new URLSearchParams(location.search).get("subcategory") || "";
+  const [category, setCategory] = useState(null);
   const [products, setProducts] = useState([]);
-  const [productsError, setProductsError] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const { addToCart } = useCart();
   const { toggleWishlist, isWishlisted } = useWishlist();
   const { requireAuthAction } = useRequireAuthAction();
 
-  const comboProducts = useMemo(
-    () =>
-      products
-        .filter((p) => ["unisex", "combo"].includes(String(p?.category || "").toLowerCase()))
-        .slice(0, 4),
-    [products]
-  );
+  const collections = useMemo(() => {
+    const cards = Array.isArray(category?.subCategoryCards) ? category.subCategoryCards : [];
+    return cards.filter((card) => card?.name);
+  }, [category]);
+
+  const comboProducts = useMemo(() => {
+    const categoryName = normalize(category?.name || "combo");
+    const categorySlug = normalize(category?.slug || "combo");
+    return products.filter((product) => {
+      const productCategory = normalize(product.category);
+      const matchesCategory = productCategory === categoryName || productCategory === categorySlug;
+      const productSubcategories = [
+        ...(Array.isArray(product.subCategories) ? product.subCategories : []),
+        ...(Array.isArray(product.subCategory) ? product.subCategory : [product.subCategory]),
+      ].map(normalize);
+      return matchesCategory
+        && (!selectedSubcategory || productSubcategories.includes(normalize(selectedSubcategory)));
+    });
+  }, [category, products, selectedSubcategory]);
+
+  const hero = resolveCollectionImage(category?.image, heroImage);
 
   useEffect(() => {
-    document.title = "Combo — Blue Whale Collection | Made for Two";
+    document.title = "Combo Collection | Blue Whale";
     return () => { document.title = "Blue Whale Collection"; };
   }, []);
 
   useEffect(() => {
     let cancelled = false;
-    const load = async () => {
+    const loadCatalog = async () => {
+      setLoading(true);
       try {
-        const data = await fetchProducts();
+        const [categories, catalog] = await Promise.all([fetchCategories(), fetchProducts()]);
+        if (cancelled) return;
+        const comboCategory = categories.find(
+          (item) => normalize(item.slug) === "combo" || normalize(item.name) === "combo"
+        );
+        setCategory(comboCategory || null);
+        setProducts(catalog);
+        setError("");
+      } catch (loadError) {
         if (!cancelled) {
-          setProducts(Array.isArray(data) ? data : []);
-          setProductsError("");
+          console.error("Failed to load Combo collection:", loadError);
+          setError(loadError?.response?.data?.message || loadError?.message || "Unable to load the Combo collection.");
         }
-      } catch (error) {
-        if (!cancelled) {
-          console.error("Failed to load combo collection products:", error);
-          setProducts([]);
-          setProductsError(error?.response?.data?.message || error?.message || "Unable to load combo products.");
-        }
+      } finally {
+        if (!cancelled) setLoading(false);
       }
     };
-    load();
-    const refresh = () => load();
+
+    void loadCatalog();
+    const refresh = () => { void loadCatalog(); };
     window.addEventListener("haierah-products-updated", refresh);
     window.addEventListener("haierah-order-created", refresh);
     const unsubscribe = subscribeToCatalogChanges(refresh);
+
     return () => {
       cancelled = true;
       unsubscribe();
@@ -148,157 +158,174 @@ export default function ComboCollectionPage() {
     };
   }, []);
 
-  // Scroll reveal (left / right / up / zoom)
-  useEffect(() => {
-    const els = document.querySelectorAll(
-      ".combo-page .reveal-left, .combo-page .reveal-right, .combo-page .reveal-up, .combo-page .reveal-zoom"
-    );
-    const io = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("in-view");
-            io.unobserve(e.target);
-          }
-        });
-      },
-      { threshold: 0.12, rootMargin: "0px 0px -50px 0px" }
-    );
-    els.forEach((el) => io.observe(el));
-    return () => io.disconnect();
-  }, [comboProducts.length]);
-
   const handleAddToCart = (product) => {
-    if (!product?.id && !product?._id) return;
-    if (!requireAuthAction("addToCart", product)) return;
-    addToCart(product);
+    if (Number(product.stock) <= 0) return;
+    if (requireAuthAction("addToCart", product)) addToCart(product);
   };
 
   const handleWishlist = (product) => {
-    if (!product?.id && !product?._id) return;
-    if (!requireAuthAction("wishlist", product)) return;
-    toggleWishlist(product);
+    if (requireAuthAction("toggleWishlist", product)) toggleWishlist(product);
   };
 
   return (
-    <div className="combo-page">
-      {/* HERO */}
-      <section className="cc-hero" style={{ "--hero-img": `url(${IMG.hero})` }}>
+    <main className="combo-page">
+      <section className="cc-hero" style={{ "--hero-img": `url("${hero}")` }}>
         <div className="cc-hero__copy">
-          <p className="cc-kicker">COMBO COLLECTION</p>
+          <p className="cc-kicker">BLUE WHALE · COMBO COLLECTION</p>
           <h1>Made for Two,<br />Woven as One</h1>
           <p className="cc-hero__desc">
-            Discover matching sarees and veshtis, crafted in the same silk, the
-            same zari and the same story, so you walk into every occasion together.
+            Discover coordinated traditional styles for every celebration,
+            thoughtfully selected from the Blue Whale collection.
           </p>
-          <Link className="cc-btn" to={LINK_ALL}>EXPLORE COLLECTION <Arrow /></Link>
+          <a className="cc-btn" href="#combo-collections">
+            EXPLORE COLLECTIONS <ArrowRight size={15} strokeWidth={1.4} />
+          </a>
         </div>
       </section>
 
-      {/* STORY */}
       <section className="cc-art">
-        <div className="cc-art-image reveal-left">
-          <img src={IMG.story} alt="Matching saree and veshti" />
+        <div className="cc-art-image">
+          <img src={storyImage} alt="Traditional fabric and handcrafted details" />
         </div>
-        <div className="cc-art-copy reveal-right">
+        <div className="cc-art-copy">
           <div>
             <p className="cc-kicker cc-dark">THE ART OF TOGETHER</p>
-            <h2>Two Outfits,<br />One Beautiful Story</h2>
+            <h2>Collections for<br />Every Occasion</h2>
             <p>
-              At Blue Whale Collection, every combo is woven as a pair. The saree and the
-              veshti share the same fabric, the same zari border and the same
-              palette, so your day looks perfectly matched, without trying.
+              Explore the Combo collection curated by Blue Whale. Browse the
+              latest styles, find a collection that suits your celebration, and
+              shop real products managed by our team.
             </p>
-            <Link to="/brand-story" className="cc-text-link">OUR JOURNEY <Arrow /></Link>
+            <Link to="/brand-story" className="cc-text-link">OUR JOURNEY <ArrowRight size={15} /></Link>
           </div>
           <div className="cc-benefits">
-            <div className="reveal-up" style={delay(1, 0.2)}><span className="cc-benefit-icon">♧</span><div><strong>Perfectly Matched</strong><small>Same fabric, same zari</small></div></div>
-            <div className="reveal-up" style={delay(2, 0.2)}><span className="cc-benefit-icon">◉</span><div><strong>Premium Fabrics</strong><small>Only the finest materials</small></div></div>
-            <div className="reveal-up" style={delay(3, 0.2)}><span className="cc-benefit-icon">✧</span><div><strong>Made for Occasions</strong><small>Weddings, festivals and more</small></div></div>
+            <div><span className="cc-benefit-icon">✦</span><span><strong>Curated Collections</strong><small>Updated by our team</small></span></div>
+            <div><span className="cc-benefit-icon">◉</span><span><strong>Real Catalog Products</strong><small>Current styles and pricing</small></span></div>
+            <div><span className="cc-benefit-icon">✧</span><span><strong>Made for Occasions</strong><small>Find a style for your day</small></span></div>
           </div>
         </div>
       </section>
 
-      {/* COLLECTIONS */}
-      <section id="collections" className="cc-collections">
+      <section id="combo-collections" className="cc-collections">
         <div className="cc-section-heading">
-          <div className="reveal-left">
-            <p className="cc-kicker cc-dark">EXPLORE OUR COLLECTIONS</p>
-            <h2>Find Your Perfect Pair</h2>
+          <div>
+            <p className="cc-kicker cc-dark">EXPLORE THE COMBO COLLECTION</p>
+            <h2>Find Your Perfect Style</h2>
           </div>
-          <Link to={LINK_ALL} className="cc-view-all reveal-right">VIEW ALL <Arrow /></Link>
+          <Link to="/category/combo" className="cc-view-all">VIEW ALL <ArrowRight size={15} /></Link>
         </div>
-        <div className="cc-collection-grid">
-          {COLLECTIONS.map((item, i) => (
-            <Link to={LINK_ALL} className="cc-collection-card reveal-up" style={delay(i)} key={item.title}>
-              <img src={item.image} alt={item.title} loading="lazy" />
-              <div className="cc-card-shade" />
-              <div className="cc-card-copy">
-                <h3>{item.title}</h3>
-                <p>{item.subtitle}</p>
-                <span><Arrow /></span>
-              </div>
+        {error ? (
+          <p className="cc-state" role="alert">{error}</p>
+        ) : loading ? (
+          <p className="cc-state" role="status">Loading Combo collections…</p>
+        ) : collections.length ? (
+          <div className="cc-collection-grid">
+            {collections.map((collection) => (
+              <Link
+                to={`/category/combo?subcategory=${encodeURIComponent(collection.name)}#combo-products`}
+                className="cc-collection-card"
+                key={collection.name}
+              >
+                <img
+                  src={resolveCollectionImage(collection.image, DEFAULT_IMAGE_FALLBACK)}
+                  alt={collection.name}
+                  loading="lazy"
+                  onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }}
+                />
+                <span className="cc-card-shade" />
+                <span className="cc-card-copy">
+                  <strong>{collection.name}</strong>
+                  {collection.subtitle && <span>{collection.subtitle}</span>}
+                  <span className="cc-card-link">EXPLORE COLLECTION <ArrowRight size={15} /></span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        ) : (
+          <div className="cc-empty-collections">
+            <h3>No Combo collections yet</h3>
+            <p>Add collection cards in Admin under Subcategory cards, then choose Combo.</p>
+          </div>
+        )}
+      </section>
+
+      <section className="cc-details">
+        <div className="cc-details-image">
+          <img src={detailsImage} alt="Intricate textile and zari details" loading="lazy" />
+        </div>
+        <div className="cc-details-copy">
+          <p className="cc-kicker cc-dark">THE DETAILS MATTER</p>
+          <h2>Thoughtful Styles,<br />Chosen with Care</h2>
+          <p>Discover curated pieces and collections created for celebrations, gatherings and everyday traditions.</p>
+          <Link to="/category/combo#combo-products" className="cc-text-link">SHOP COMBO <ArrowRight size={15} /></Link>
+        </div>
+        <div className="cc-detail-thumbs">
+          {collections.slice(0, 3).map((collection) => (
+            <Link
+              className="cc-detail-thumb"
+              to={`/category/combo?subcategory=${encodeURIComponent(collection.name)}#combo-products`}
+              key={collection.name}
+            >
+              <img
+                src={resolveCollectionImage(collection.image, DEFAULT_IMAGE_FALLBACK)}
+                alt=""
+                loading="lazy"
+                onError={(event) => { event.currentTarget.src = DEFAULT_IMAGE_FALLBACK; }}
+              />
+              <span>{collection.name}</span>
             </Link>
           ))}
         </div>
       </section>
 
-      {/* DETAILS */}
-      <section className="cc-details">
-        <div className="cc-details-image reveal-left">
-          <img src={IMG.details} alt="Matching zari details" />
-        </div>
-        <div className="cc-details-copy reveal-right">
-          <p className="cc-kicker cc-dark">THE DETAILS MATTER</p>
-          <h2>Matched with Care,<br />Woven with Love</h2>
-          <p>
-            Experience matching zari borders, shared colour palettes and
-            coordinated textures that make every pair truly special.
-          </p>
-          <Link to={LINK_ALL} className="cc-text-link">EXPLORE DETAILS <Arrow /></Link>
-        </div>
-        <div className="cc-detail-thumbs">
-          {DETAIL_IMAGES.map((item, i) => (
-            <div className="cc-detail-thumb reveal-zoom" style={delay(i, 0.15)} key={item.label}>
-              <img src={item.image} alt={item.label} />
-              <span>{item.label}</span>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      {/* FEATURED */}
-      <section className="cc-featured">
+      <section id="combo-products" className="cc-featured">
         <div className="cc-section-heading">
-          <div className="reveal-left">
-            <p className="cc-kicker cc-dark">FEATURED COMBOS</p>
-            <h2>Pairs Made for You</h2>
+          <div>
+            <p className="cc-kicker cc-dark">
+              {selectedSubcategory ? selectedSubcategory.toUpperCase() : "FEATURED COMBO PRODUCTS"}
+            </p>
+            <h2>{selectedSubcategory || "Explore the Collection"}</h2>
           </div>
-          <Link to={LINK_ALL} className="cc-view-all reveal-right">VIEW ALL <Arrow /></Link>
+          {selectedSubcategory && (
+            <Link to="/category/combo#combo-products" className="cc-view-all">
+              CLEAR FILTER <ArrowRight size={15} />
+            </Link>
+          )}
         </div>
-        <div className="cc-product-grid">
-          {(comboProducts.length ? comboProducts : [null, null, null, null]).map((product, index) => (
-            <ComboProductCard
-              key={product?.id || product?._id || index}
-              product={product}
-              index={index}
-              onAddToCart={handleAddToCart}
-              onWishlist={handleWishlist}
-              wishlisted={product ? isWishlisted(product.id || product._id) : false}
-            />
-          ))}
-        </div>
-        {productsError && <p role="alert" className="mt-4 text-sm text-red-700">{productsError}</p>}
+        {error ? (
+          <p className="cc-state" role="alert">{error}</p>
+        ) : loading ? (
+          <p className="cc-state" role="status">Loading Combo products…</p>
+        ) : comboProducts.length ? (
+          <div className="cc-product-grid">
+            {comboProducts.map((product) => (
+              <ComboProductCard
+                key={product.id || product._id}
+                product={product}
+                onAddToCart={handleAddToCart}
+                onWishlist={handleWishlist}
+                wishlisted={isWishlisted(product.id || product._id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <div className="cc-empty-collections">
+            <h3>{selectedSubcategory ? "No products in this collection yet" : "No Combo products yet"}</h3>
+            <p>
+              Add products in Admin and assign them to the Combo category
+              {selectedSubcategory ? ` and ${selectedSubcategory}` : ""}.
+            </p>
+          </div>
+        )}
       </section>
 
-      {/* CLOSING BANNER */}
-      <section className="cc-closing" style={{ "--banner-img": `url(${IMG.banner})` }}>
-        <div className="cc-closing-copy reveal-zoom">
+      <section className="cc-closing" style={{ "--banner-img": `url("${bannerImage}")` }}>
+        <div className="cc-closing-copy">
           <p>TIMELESS. ROOTED. BLUE WHALE.</p>
-          <span>Outfits that celebrate you, together.</span>
-          <Link to={LINK_ALL}>EXPLORE NOW <Arrow /></Link>
+          <span>Discover styles made for your moments together.</span>
+          <Link to="/category/combo#combo-collections">EXPLORE COMBO <ArrowRight size={15} /></Link>
         </div>
       </section>
-    </div>
+    </main>
   );
 }

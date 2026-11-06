@@ -57,7 +57,7 @@ export function useAdminController() {
       try {
         const results = await Promise.allSettled([
           apiClient.get('/api/products'),
-          apiClient.get('/api/admin/categories'),
+          apiClient.get('/api/categories'),
           apiClient.get('/api/admin/customers'),
           apiClient.get('/api/admin/coupons')
         ]);
@@ -182,7 +182,7 @@ export function useAdminController() {
         setState((prev) => ({
           ...prev,
           products: productsResult.status === 'fulfilled' ? serverProducts : prev.products,
-          categories: serverCategories,
+          categories: categoriesResult.status === 'fulfilled' ? serverCategories : prev.categories,
           orders: mergedOrders,
           customers: normalizedCustomers.length > 0 ? normalizedCustomers : prev.customers,
           coupons: serverCoupons.length > 0 ? serverCoupons : prev.coupons

@@ -1,6 +1,9 @@
 .combo-page {
   --combo-ink: #18130f;
   --combo-paper: #fbf6ed;
+  width: 100%;
+  min-height: 100vh;
+  min-height: 100svh;
   overflow: hidden;
   margin-top: -64px;
   background: var(--combo-paper);
@@ -35,7 +38,11 @@
 .combo-page .cc-hero {
   position: relative;
   display: flex;
-  min-height: min(820px, 100svh);
+  width: 100%;
+  height: calc(100vh + 80px);
+  height: calc(100svh + 80px);
+  min-height: calc(100vh + 80px);
+  min-height: calc(100svh + 80px);
   align-items: center;
   overflow: hidden;
   padding: 130px 5vw 70px;
@@ -471,7 +478,14 @@
 }
 
 @media (max-width: 640px) {
-  .combo-page .cc-hero { min-height: 690px; align-items: flex-end; padding: 120px 22px 58px; }
+  .combo-page .cc-hero {
+    height: calc(100vh + 64px);
+    height: calc(100svh + 64px);
+    min-height: calc(100vh + 64px);
+    min-height: calc(100svh + 64px);
+    align-items: flex-end;
+    padding: 120px 22px 58px;
+  }
   .combo-page .cc-hero h1 { font-size: 42px; }
   .combo-page .cc-hero__desc { font-size: 13px; line-height: 1.6; }
   .combo-page .cc-art { margin-top: 32px; }

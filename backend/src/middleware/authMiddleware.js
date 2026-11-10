@@ -5,23 +5,31 @@ const JWT_SECRET = process.env.JWT_SECRET || 'development-secret-key';
 
 export const protect = async (req, res, next) => {
   try {
-    const tokenFromCookie = req.cookies?.token;
     const authHeader = req.headers.authorization || '';
     const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const token = tokenFromHeader || tokenFromCookie;
+    const tokens = [...new Set([tokenFromHeader, req.cookies?.token].filter(Boolean))];
 
-    if (!token) {
+    if (tokens.length === 0) {
       return res.status(401).json({ message: 'Authentication required' });
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
-    if (!decoded?.userId) {
-      return res.status(401).json({ message: 'Invalid authentication token' });
+    let user = null;
+    for (const token of tokens) {
+      try {
+        const decoded = jwt.verify(token, JWT_SECRET);
+        if (!decoded?.userId) continue;
+
+        user = await User.findById(decoded.userId).select('-password');
+        if (user) break;
+      } catch (error) {
+        if (error?.name !== 'TokenExpiredError' && error?.name !== 'JsonWebTokenError') {
+          throw error;
+        }
+      }
     }
 
-    const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
-      return res.status(401).json({ message: 'User not found' });
+      return res.status(401).json({ message: 'Session expired or invalid' });
     }
 
     req.user = {

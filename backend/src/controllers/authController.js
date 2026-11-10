@@ -95,12 +95,11 @@ const toAuthUserResponse = (user) => ({
 
 const getCookieOptions = () => {
   const isProduction = process.env.NODE_ENV === 'production';
-  const isCrossOrigin = Boolean(process.env.FRONTEND_URL && process.env.FRONTEND_URL !== 'http://localhost:5173');
 
   return {
     httpOnly: true,
     secure: isProduction,
-    sameSite: isProduction && isCrossOrigin ? 'none' : 'lax',
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
   };
 };
@@ -117,6 +116,7 @@ const setAuthCookie = (res, user) => {
   );
 
   res.cookie('token', token, getCookieOptions());
+  return token;
 };
 
 export const registerUser = async (req, res) => {
@@ -310,11 +310,12 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: 'Invalid credentials' });
     }
 
-    setAuthCookie(res, user);
+    const token = setAuthCookie(res, user);
 
     res.status(200).json({
       message: 'Login successful',
       user: toAuthUserResponse(user),
+      ...(user.role === 'admin' ? { token } : {}),
     });
   } catch (error) {
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -399,7 +400,7 @@ export const googleAuth = async (req, res) => {
       await user.save();
     }
 
-    setAuthCookie(res, user);
+    const token = setAuthCookie(res, user);
 
     return res.status(200).json({
       message: 'Google login successful',
@@ -407,6 +408,7 @@ export const googleAuth = async (req, res) => {
         ...user.toObject(),
         avatar: user.avatar || avatar,
       }),
+      ...(user.role === 'admin' ? { token } : {}),
     });
   } catch (error) {
     console.error('Google auth failed:', error);

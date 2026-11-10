@@ -28,10 +28,26 @@ export const buildApiUrl = (path) => {
   if (path.startsWith(apiBaseUrl)) return path;
   return `${apiBaseUrl.replace(/\/$/, '')}${path}`;
 };
-export const apiClient = axios.create({ 
+
+export const getAdminAuthHeaders = () => {
+  if (typeof window === 'undefined') return {};
+
+  const token = window.sessionStorage.getItem('adminToken');
+  return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
+export const apiClient = axios.create({
   baseURL: apiBaseUrl || undefined,
   withCredentials: true,
   timeout: 20_000,
+});
+
+apiClient.interceptors.request.use((config) => {
+  const authHeaders = getAdminAuthHeaders();
+  if (authHeaders.Authorization) {
+    config.headers.Authorization = authHeaders.Authorization;
+  }
+  return config;
 });
 
 const getWithRetry = async (path) => {

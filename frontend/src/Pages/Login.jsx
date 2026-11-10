@@ -5,7 +5,7 @@ import { useCart } from "../Context/CartContext";
 import { useWishlist } from "../Context/WhislistContext";
 import { consumePendingAuthAction } from "../utils/authActionUtils";
 import { renderGoogleButton } from "../utils/googleAuth";
-import { buildApiUrl } from "../services/api";
+import { buildApiUrl, getAdminAuthHeaders } from "../services/api";
 import { motion } from "framer-motion";
 import loginImage from "../assets/HomeHero.png";
 import BlueWhaleLogo from "../assets/BlueWhaleLogoTransparent.png";
@@ -69,10 +69,16 @@ export default function Login() {
           return;
         }
 
+        if (data.user?.role === 'admin' && typeof data.token === 'string') {
+          sessionStorage.setItem('adminToken', data.token);
+        } else {
+          sessionStorage.removeItem('adminToken');
+        }
+
         const meResponse = await fetch(buildApiUrl('/api/auth/me'), {
           method: 'GET',
           credentials: 'include',
-          headers: { Accept: 'application/json' },
+          headers: { Accept: 'application/json', ...getAdminAuthHeaders() },
         });
 
         const meData = meResponse.ok ? await meResponse.json() : null;

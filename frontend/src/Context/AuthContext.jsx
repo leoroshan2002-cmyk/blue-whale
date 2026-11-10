@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from "react";
-import { buildApiUrl } from "../services/api";
+import { buildApiUrl, getAdminAuthHeaders } from "../services/api";
 
 export const AuthContext = createContext();
 
@@ -28,11 +28,12 @@ const hasActiveAuthSession = () => {
   if (typeof window === "undefined") return false;
 
   const hasStoredUser = Boolean(localStorage.getItem("user"));
+  const hasAdminToken = Boolean(sessionStorage.getItem("adminToken"));
   const hasTokenCookie = document.cookie
     .split("; ")
     .some((cookie) => cookie.startsWith("token="));
 
-  return hasStoredUser || hasTokenCookie;
+  return hasStoredUser || hasAdminToken || hasTokenCookie;
 };
 
 export const AuthProvider = ({ children }) => {
@@ -57,12 +58,13 @@ export const AuthProvider = ({ children }) => {
         const response = await fetch(buildApiUrl("/api/auth/me"), {
           method: "GET",
           credentials: "include",
-          headers: { Accept: "application/json" },
+          headers: { Accept: "application/json", ...getAdminAuthHeaders() },
         });
 
         if (response.status === 401 || response.status === 403) {
           setUser(null);
           localStorage.removeItem("user");
+          sessionStorage.removeItem("adminToken");
           return;
         }
 
@@ -115,12 +117,17 @@ export const AuthProvider = ({ children }) => {
       }
 
       let loggedInUser = sanitizeUser(data?.user);
+      if (loggedInUser?.role === "admin" && typeof data?.token === "string") {
+        sessionStorage.setItem("adminToken", data.token);
+      } else {
+        sessionStorage.removeItem("adminToken");
+      }
 
       if (!loggedInUser) {
         const meResponse = await fetch(buildApiUrl("/api/auth/me"), {
           method: "GET",
           credentials: "include",
-          headers: { Accept: "application/json" },
+          headers: { Accept: "application/json", ...getAdminAuthHeaders() },
         });
 
         const meData = meResponse.ok ? await meResponse.json() : null;

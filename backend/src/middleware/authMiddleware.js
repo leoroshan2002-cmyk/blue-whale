@@ -8,7 +8,7 @@ export const protect = async (req, res, next) => {
     const tokenFromCookie = req.cookies?.token;
     const authHeader = req.headers.authorization || '';
     const tokenFromHeader = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
-    const token = tokenFromCookie || tokenFromHeader;
+    const token = tokenFromHeader || tokenFromCookie;
 
     if (!token) {
       return res.status(401).json({ message: 'Authentication required' });

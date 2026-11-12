@@ -109,6 +109,7 @@ const App = () => {
               <Route path="/press" element={<Press />} />
               <Route path="/store-locator" element={<StoreLocator />} />
               <Route path="/products" element={<Navigate to="/category/combo" replace />} />
+              <Route path="/combo" element={<Navigate to="/category/combo" replace />} />
               <Route path="/shop" element={<ProductsPage />} />
               <Route path="/category/combo" element={<ComboCollectionPage />} />
               <Route path="/category/women" element={<WomenCollectionPage />} />

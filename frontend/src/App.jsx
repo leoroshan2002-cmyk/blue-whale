@@ -116,6 +116,7 @@ const App = () => {
               <Route path="/category/women/all" element={<CategoryProductsPage key="women" categoryName="women" />} />
               <Route path="/category/men" element={<MenCollectionPage />} />
               <Route path="/category/men/all" element={<CategoryProductsPage key="men" />} />
+              <Route path="/category/combo/all" element={<CategoryProductsPage key="combo" categoryName="combo" />} />
               <Route path="/category/:slug" element={<CategoryPage />} />
               <Route path="/product/:id" element={<ProductPage />} />
 

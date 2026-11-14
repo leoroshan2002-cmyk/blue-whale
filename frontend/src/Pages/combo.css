@@ -32,7 +32,14 @@
 .combo-page .cc-dark { color: #7b6651; }
 
 .combo-page .cc-hero {
-  display: none;
+  position: relative;
+  display: flex;
+  min-height: 100vh;
+  min-height: 100svh;
+  align-items: center;
+  overflow: hidden;
+  padding: 145px 8vw 70px;
+  color: #fff;
 }
 
 .combo-page .cc-hero::before {
@@ -419,15 +426,9 @@
   text-align: center;
 }
 
-.combo-page .cc-art,
-.combo-page .cc-details,
-.combo-page .cc-closing {
-  display: none;
-}
-
 .combo-page .cc-closing {
   position: relative;
-  display: none;
+  display: flex;
   min-height: 390px;
   align-items: center;
   justify-content: flex-end;
@@ -493,10 +494,8 @@
 
 @media (max-width: 640px) {
   .combo-page .cc-hero {
-    height: calc(100vh + 64px);
-    height: calc(100svh + 64px);
-    min-height: calc(100vh + 64px);
-    min-height: calc(100svh + 64px);
+    min-height: 85vh;
+    min-height: 85svh;
     align-items: flex-end;
     padding: 120px 22px 58px;
   }

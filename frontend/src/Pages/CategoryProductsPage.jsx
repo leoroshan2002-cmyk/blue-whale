@@ -14,6 +14,12 @@ const productPrice = (product) => Number(product.discountPrice ?? product.salePr
 const productColors = (product) => product.colors || product.variants?.colors || [];
 const colorName = (color) => typeof color === "string" ? color : color?.name || color?.value || color?.hex || "";
 const colorValue = (color) => typeof color === "string" ? color : color?.hex || color?.value || "";
+const normalize = (value) => String(value || "").trim().toLowerCase();
+const getProductSubcategories = (product) => [
+  ...(Array.isArray(product.subCategories) ? product.subCategories : []),
+  ...(Array.isArray(product.subCategory) ? product.subCategory : [product.subCategory]),
+  ...(Array.isArray(product.subcategory) ? product.subcategory : [product.subcategory]),
+].filter(Boolean);
 
 const Stars = ({ value }) => (
   <span className="mp-stars" aria-label={`${value} out of 5`}>
@@ -38,8 +44,10 @@ function FilterGroup({ title, children }) {
 export default function CategoryProductsPage({ categoryName = "men" }) {
   const { search } = useLocation();
   const requestedCategory = new URLSearchParams(search).get("subcategory") || "All Products";
-  const [category, setCategory] = useState(requestedCategory);
-  const title = categoryName === "women" ? "Women" : "Men";
+  const [selection, setSelection] = useState({ search, category: requestedCategory });
+  const category = selection.search === search ? selection.category : requestedCategory;
+  const setCategory = (value) => setSelection({ search, category: value });
+  const title = categoryName === "women" ? "Women" : categoryName === "combo" ? "Combo" : "Men";
   const categoryPath = `/category/${categoryName}`;
   const [maxPrice, setMaxPrice] = useState(null);
   const [fabrics, setFabrics] = useState([]);
@@ -48,6 +56,7 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
   const [sort, setSort] = useState("featured");
   const [view, setView] = useState("grid");
   const [products, setProducts] = useState([]);
+  const [categoryAliases, setCategoryAliases] = useState([categoryName]);
   const [managedSubcategories, setManagedSubcategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
@@ -62,7 +71,7 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
       try {
         const allProducts = await fetchProducts();
         if (cancelled) return;
-        setProducts(allProducts.filter((product) => String(product.category || "").trim().toLowerCase() === categoryName));
+        setProducts(allProducts);
         setLoadError("");
       } catch (error) {
         if (cancelled) return;
@@ -92,6 +101,7 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
         const categories = await fetchCategories();
         if (!cancelled) {
           const categoryData = categories.find((item) => item.slug === categoryName || item.name?.toLowerCase() === categoryName);
+          setCategoryAliases([...new Set([categoryName, categoryData?.name, categoryData?.slug].filter(Boolean))]);
           setManagedSubcategories([...new Set([
             ...(categoryData?.subCategories || []),
             ...(categoryData?.subCategoryCards || []).map((card) => card.name),
@@ -111,26 +121,31 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
     };
   }, [categoryName]);
 
+  const categoryProducts = useMemo(() => {
+    const aliases = categoryAliases.map(normalize);
+    return products.filter((product) => aliases.includes(normalize(product.category)));
+  }, [products, categoryAliases]);
+
   const toggle = (list, setList, v) =>
     setList(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
 
   const categoryList = useMemo(() => {
-    const fromProducts = products.map((p) => p.subCategory || p.subcategory).filter(Boolean);
+    const fromProducts = categoryProducts.flatMap(getProductSubcategories);
     return [...new Set([...managedSubcategories, ...fromProducts])];
-  }, [managedSubcategories, products]);
-  const fabricList = useMemo(() => [...new Set(products.map((p) => p.material || p.fabric).filter(Boolean))], [products]);
+  }, [managedSubcategories, categoryProducts]);
+  const fabricList = useMemo(() => [...new Set(categoryProducts.map((p) => p.material || p.fabric).filter(Boolean))], [categoryProducts]);
   const colourList = useMemo(() => {
-    const values = products.flatMap(productColors).filter(Boolean);
+    const values = categoryProducts.flatMap(productColors).filter(Boolean);
     return [...new Map(values.map((color) => [colorName(color), color])).values()];
-  }, [products]);
-  const sliderMax = useMemo(() => Math.max(MAX_PRICE, Math.ceil(Math.max(0, ...products.map(productPrice)) / 1000) * 1000), [products]);
+  }, [categoryProducts]);
+  const sliderMax = useMemo(() => Math.max(MAX_PRICE, Math.ceil(Math.max(0, ...categoryProducts.map(productPrice)) / 1000) * 1000), [categoryProducts]);
   const priceLimit = maxPrice ?? sliderMax;
-  const counts = (value) => products.filter((product) => (product.subCategory || product.subcategory) === value).length;
+  const counts = (value) => categoryProducts.filter((product) => getProductSubcategories(product).some((subcategory) => normalize(subcategory) === normalize(value))).length;
 
   const visible = useMemo(() => {
-    let list = products.filter(
+    let list = categoryProducts.filter(
       (p) =>
-        (category === "All Products" || (p.subCategory || p.subcategory) === category) &&
+        (category === "All Products" || getProductSubcategories(p).some((subcategory) => normalize(subcategory) === normalize(category))) &&
         productPrice(p) <= priceLimit &&
         (!fabrics.length || fabrics.includes(p.material || p.fabric)) &&
         (!colours.length || productColors(p).some((color) => colours.includes(colorName(color)))) &&
@@ -143,7 +158,7 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
     };
     if (sorters[sort]) list = [...list].sort(sorters[sort]);
     return list;
-  }, [products, category, priceLimit, fabrics, colours, inStockOnly, sort]);
+  }, [categoryProducts, category, priceLimit, fabrics, colours, inStockOnly, sort]);
 
   const clearAll = () => {
     setCategory("All Products"); setMaxPrice(null); setFabrics([]);
@@ -167,7 +182,9 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
         <h1>{title} Collection</h1>
         <p>{categoryName === "women"
           ? "Timeless sarees. Refined craftsmanship. Traditional style."
-          : "Timeless veshtis. Refined craftsmanship. Traditional style."}</p>
+          : categoryName === "combo"
+            ? "Thoughtfully coordinated styles for celebrations, moments, and every day."
+            : "Timeless veshtis. Refined craftsmanship. Traditional style."}</p>
       </section>
 
       <div className="mp-layout">
@@ -179,7 +196,7 @@ export default function CategoryProductsPage({ categoryName = "men" }) {
                 <li key={c}>
                   <button className={category === c ? "active" : ""} onClick={() => setCategory(c)}>
                     <span>{c}</span>
-                    <small>({c === "All Products" ? products.length : counts(c)})</small>
+                    <small>({c === "All Products" ? categoryProducts.length : counts(c)})</small>
                   </button>
                 </li>
               ))}

@@ -212,7 +212,7 @@ export default function ComboCollectionPage() {
             <p className="cc-kicker cc-dark">EXPLORE THE COMBO COLLECTION</p>
             <h2>Find Your Perfect Style</h2>
           </div>
-          <Link to="/category/combo" className="cc-view-all">VIEW ALL <ArrowRight size={15} /></Link>
+          <Link to="/category/combo/all" className="cc-view-all">VIEW ALL <ArrowRight size={15} /></Link>
         </div>
         {error ? (
           <p className="cc-state" role="alert">{error}</p>
@@ -222,7 +222,7 @@ export default function ComboCollectionPage() {
           <div className="cc-collection-grid">
             {collections.map((collection) => (
               <Link
-                to={`/category/combo?subcategory=${encodeURIComponent(collection.name)}#combo-products`}
+                to={`/category/combo/all?subcategory=${encodeURIComponent(collection.name)}`}
                 className="cc-collection-card"
                 key={collection.name}
               >
@@ -257,13 +257,13 @@ export default function ComboCollectionPage() {
           <p className="cc-kicker cc-dark">THE DETAILS MATTER</p>
           <h2>Thoughtful Styles,<br />Chosen with Care</h2>
           <p>Discover curated pieces and collections created for celebrations, gatherings and everyday traditions.</p>
-          <Link to="/category/combo#combo-products" className="cc-text-link">SHOP COMBO <ArrowRight size={15} /></Link>
+          <Link to="/category/combo/all" className="cc-text-link">SHOP COMBO <ArrowRight size={15} /></Link>
         </div>
         <div className="cc-detail-thumbs">
           {collections.slice(0, 3).map((collection) => (
             <Link
               className="cc-detail-thumb"
-              to={`/category/combo?subcategory=${encodeURIComponent(collection.name)}#combo-products`}
+              to={`/category/combo/all?subcategory=${encodeURIComponent(collection.name)}`}
               key={collection.name}
             >
               <img
@@ -287,7 +287,7 @@ export default function ComboCollectionPage() {
             <h2>{selectedSubcategory || "Explore the Collection"}</h2>
           </div>
           {selectedSubcategory && (
-            <Link to="/category/combo#combo-products" className="cc-view-all">
+            <Link to="/category/combo/all" className="cc-view-all">
               CLEAR FILTER <ArrowRight size={15} />
             </Link>
           )}
@@ -323,7 +323,7 @@ export default function ComboCollectionPage() {
         <div className="cc-closing-copy">
           <p>TIMELESS. ROOTED. BLUE WHALE.</p>
           <span>Discover styles made for your moments together.</span>
-          <Link to="/category/combo#combo-collections">EXPLORE COMBO <ArrowRight size={15} /></Link>
+          <Link to="/category/combo/all">EXPLORE COMBO <ArrowRight size={15} /></Link>
         </div>
       </section>
     </main>
